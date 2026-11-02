@@ -3,174 +3,116 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>TOUGE DRIFT - Prototype 0.1</title>
+<title>TOUGE DRIFT - Prototype 0.2</title>
 <style>
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0; width: 100%; height: 100%; overflow: hidden;
-    background: #172019; touch-action: none; user-select: none;
-    -webkit-user-select: none; -webkit-touch-callout: none;
-    font-family: system-ui, sans-serif;
-  }
-  #game { display:block; width:100vw; height:100vh; }
-  #hud {
-    position: fixed; top: max(12px, env(safe-area-inset-top)); left: 14px;
-    color: white; text-shadow: 0 2px 4px #000; pointer-events:none;
-  }
-  #speed { font-size: 30px; font-weight: 800; line-height: 1; }
-  #unit { font-size: 11px; opacity: .8; margin-left: 4px; }
-  #version { font-size: 11px; opacity: .7; margin-top: 6px; letter-spacing: 1px; }
-  .controls {
-    position: fixed; bottom: max(18px, env(safe-area-inset-bottom));
-    display:flex; gap:12px; align-items:end;
-  }
-  #steering { left: 14px; }
-  #pedals { right: 14px; flex-direction:column; }
-  .btn {
-    width: min(19vw, 82px); height: min(19vw, 82px);
-    border: 2px solid rgba(255,255,255,.55); border-radius: 50%;
-    color:white; background:rgba(20,25,28,.55); font-size:25px;
-    font-weight:800; display:grid; place-items:center;
-    -webkit-tap-highlight-color: transparent; touch-action:none;
-    box-shadow: 0 3px 12px rgba(0,0,0,.3);
-  }
-  .btn.active { background:rgba(255,150,30,.8); transform:scale(.96); }
-  #pedals .btn { width:min(17vw,74px); height:min(17vw,74px); font-size:15px; border-radius:18px; }
-  #brake { background:rgba(160,35,35,.55); }
-  #gas { background:rgba(35,130,65,.6); }
-  #hint {
-    position:fixed; left:50%; top: max(12px, env(safe-area-inset-top));
-    transform:translateX(-50%); color:#fff; font-size:11px;
-    opacity:.72; text-shadow:0 1px 3px #000; pointer-events:none;
-    white-space:nowrap;
-  }
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#172019;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:system-ui,sans-serif}
+#game{display:block;width:100vw;height:100vh}
+#hud{position:fixed;top:max(12px,env(safe-area-inset-top));left:14px;color:#fff;text-shadow:0 2px 4px #000;pointer-events:none}
+#speed{font-size:30px;font-weight:800;line-height:1}
+#unit{font-size:11px;opacity:.8;margin-left:4px}
+#version{font-size:11px;opacity:.75;margin-top:6px;letter-spacing:1px}
+.controls{position:fixed;bottom:max(18px,env(safe-area-inset-bottom));display:flex;gap:12px;align-items:end}
+#steering{left:14px}
+#pedals{right:14px;flex-direction:column}
+.btn{width:min(19vw,82px);height:min(19vw,82px);border:2px solid rgba(255,255,255,.55);border-radius:50%;color:#fff;background:rgba(20,25,28,.55);font-size:25px;font-weight:800;display:grid;place-items:center;-webkit-tap-highlight-color:transparent;touch-action:none;box-shadow:0 3px 12px rgba(0,0,0,.3);padding:0}
+.btn.active{background:rgba(255,150,30,.8);transform:scale(.96)}
+#pedals .btn{width:min(17vw,74px);height:min(17vw,74px);font-size:15px;border-radius:18px}
+#brake{background:rgba(160,35,35,.55)}
+#gas{background:rgba(35,130,65,.6)}
+#hint{position:fixed;left:50%;top:max(12px,env(safe-area-inset-top));transform:translateX(-50%);color:#fff;font-size:11px;opacity:.72;text-shadow:0 1px 3px #000;pointer-events:none;white-space:nowrap}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div><span id="speed">0</span><span id="unit">km/h</span></div><div id="version">TOUGE DRIFT / PROTOTYPE 0.1</div></div>
+<div id="hud"><div><span id="speed">0</span><span id="unit">km/h</span></div><div id="version">TOUGE DRIFT / PROTOTYPE 0.2</div></div>
 <div id="hint">タッチ操作 / キーボード操作対応</div>
 <div class="controls" id="steering">
-  <button class="btn" id="left" aria-label="左">◀</button>
-  <button class="btn" id="right" aria-label="右">▶</button>
+<button class="btn" id="left" aria-label="左">◀</button>
+<button class="btn" id="right" aria-label="右">▶</button>
 </div>
 <div class="controls" id="pedals">
-  <button class="btn" id="gas">アクセル</button>
-  <button class="btn" id="brake">ブレーキ</button>
+<button class="btn" id="gas">アクセル</button>
+<button class="btn" id="brake">ブレーキ</button>
 </div>
 <script>
-(() => {
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  const speedEl = document.getElementById('speed');
-  let W=0, H=0, dpr=1;
-  function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    W = window.innerWidth; H = window.innerHeight;
-    canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
-    canvas.style.width = W+'px'; canvas.style.height = H+'px';
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-  }
-  window.addEventListener('resize', resize); resize();
-
-  const input = { gas:false, brake:false, left:false, right:false };
-  const car = { x:0, y:0, angle:-Math.PI/2, speed:0, maxSpeed:7.5,
-    accel:0.105, brakePower:0.16, friction:0.025, steer:0.035 };
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-
-  function bindButton(id, key) {
-    const el=document.getElementById(id);
-    const on=e=>{ e.preventDefault(); input[key]=true; el.classList.add('active'); };
-    const off=e=>{ e.preventDefault(); input[key]=false; el.classList.remove('active'); };
-    el.addEventListener('pointerdown',on);
-    ['pointerup','pointercancel','pointerleave','lostpointercapture'].forEach(t=>el.addEventListener(t,off));
-  }
-  bindButton('gas','gas'); bindButton('brake','brake');
-  bindButton('left','left'); bindButton('right','right');
-
-  const keys={};
-  window.addEventListener('keydown',e=>{
-    keys[e.key.toLowerCase()]=true;
-    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-  },{passive:false});
-  window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-  function held(name) {
-    if(name==='gas') return input.gas||keys.arrowup||keys.w;
-    if(name==='brake') return input.brake||keys.arrowdown||keys.s;
-    if(name==='left') return input.left||keys.arrowleft||keys.a;
-    return input.right||keys.arrowright||keys.d;
-  }
-
-  function update() {
-    if(held('gas')) car.speed=Math.min(car.maxSpeed,car.speed+car.accel);
-    if(held('brake')) {
-      if(car.speed>0) car.speed=Math.max(0,car.speed-car.brakePower);
-      else car.speed=Math.max(-2.2,car.speed-car.accel*.55);
-    }
-    if(!held('gas')&&!held('brake')) {
-      if(car.speed>0) car.speed=Math.max(0,car.speed-car.friction);
-      if(car.speed<0) car.speed=Math.min(0,car.speed+car.friction);
-    }
-    if(Math.abs(car.speed)>.12) {
-      const direction=car.speed>=0?1:-1;
-      const steerInput=(held('right')?1:0)-(held('left')?1:0);
-      car.angle += steerInput*car.steer*direction*(.25+Math.abs(car.speed)/car.maxSpeed);
-    }
-    car.x += Math.cos(car.angle)*car.speed;
-    car.y += Math.sin(car.angle)*car.speed;
-    speedEl.textContent=Math.round(Math.abs(car.speed)*28);
-  }
-
-  function drawRoad() {
-    const cx=W*.5, cy=H*.5, r=Math.min(W,H)*.27;
-    ctx.fillStyle='#29452e'; ctx.fillRect(0,0,W,H);
-    // 遠景の木々
-    for(let i=0;i<90;i++) {
-      const a=i*2.399, rr=r*1.65+(i%5)*13;
-      const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr*.72;
-      ctx.fillStyle=i%3===0?'#183522':'#203d28';
-      ctx.beginPath(); ctx.arc(x,y,8+(i%4)*2,0,Math.PI*2); ctx.fill();
-    }
-    ctx.lineCap='round';
-    ctx.strokeStyle='#777'; ctx.lineWidth= Math.max(76,Math.min(112,r*.58));
-    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.28,r*.82,0,0,Math.PI*2); ctx.stroke();
-    ctx.strokeStyle='#333'; ctx.lineWidth=Math.max(66,Math.min(100,r*.52));
-    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.28,r*.82,0,0,Math.PI*2); ctx.stroke();
-    ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=2; ctx.setLineDash([16,18]);
-    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.28,r*.82,0,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
-    // ガードレール風の外周
-    ctx.strokeStyle='#d9d9d0'; ctx.lineWidth=5;
-    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.28+43,r*.82+28,0,0,Math.PI*2); ctx.stroke();
-    ctx.strokeStyle='#aeb4b0'; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.28+43,r*.82+28,0,0,Math.PI*2); ctx.stroke();
-    // 中央の草地
-    ctx.fillStyle='#345b39'; ctx.beginPath(); ctx.ellipse(cx,cy,r*.72,r*.42,0,0,Math.PI*2); ctx.fill();
-  }
-
-  function drawCar() {
-    const x=W*.5, y=H*.5;
-    ctx.save(); ctx.translate(x,y); ctx.rotate(car.angle);
-    // 影
-    ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(-17,-8,42,24);
-    // タイヤ
-    ctx.fillStyle='#111';
-    ctx.fillRect(-13,-13,9,5); ctx.fillRect(8,-13,9,5);
-    ctx.fillRect(-13,9,9,5); ctx.fillRect(8,9,9,5);
-    // 車体
-    ctx.fillStyle='#d83232'; ctx.fillRect(-20,-10,40,20);
-    ctx.fillStyle='#9ec8d4'; ctx.fillRect(-7,-8,15,16);
-    ctx.fillStyle='#fff2c4'; ctx.fillRect(15,-7,5,5); ctx.fillRect(15,2,5,5);
-    ctx.fillStyle='#7c1717'; ctx.fillRect(-20,-8,4,16);
-    ctx.restore();
-  }
-
-  function frame() {
-    update();
-    drawRoad();
-    drawCar();
-    requestAnimationFrame(frame);
-  }
-  frame();
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),speedEl=document.getElementById('speed');
+let W=0,H=0,dpr=1,roadRx=300,roadRy=190;
+function resize(){
+ dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+ canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
+ roadRx=Math.max(170,Math.min(W,H)*.36);roadRy=Math.max(125,Math.min(W,H)*.245);
+}
+addEventListener('resize',resize);resize();
+const input={gas:false,brake:false,left:false,right:false};
+const car={x:0,y:-roadRy,angle:0,speed:0,maxSpeed:7.5,accel:.105,brakePower:.16,friction:.025,steer:.035};
+function bindButton(id,key){
+ const el=document.getElementById(id);
+ const on=e=>{e.preventDefault();input[key]=true;el.classList.add('active');};
+ const off=e=>{e.preventDefault();input[key]=false;el.classList.remove('active');};
+ el.addEventListener('pointerdown',on);
+ ['pointerup','pointercancel','pointerleave','lostpointercapture'].forEach(t=>el.addEventListener(t,off));
+}
+bindButton('gas','gas');bindButton('brake','brake');bindButton('left','left');bindButton('right','right');
+const keys={};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();},{passive:false});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+function held(n){
+ if(n==='gas')return input.gas||keys.arrowup||keys.w;
+ if(n==='brake')return input.brake||keys.arrowdown||keys.s;
+ if(n==='left')return input.left||keys.arrowleft||keys.a;
+ return input.right||keys.arrowright||keys.d;
+}
+function update(){
+ if(held('gas'))car.speed=Math.min(car.maxSpeed,car.speed+car.accel);
+ if(held('brake')){if(car.speed>0)car.speed=Math.max(0,car.speed-car.brakePower);else car.speed=Math.max(-2.2,car.speed-car.accel*.55);}
+ if(!held('gas')&&!held('brake')){if(car.speed>0)car.speed=Math.max(0,car.speed-car.friction);if(car.speed<0)car.speed=Math.min(0,car.speed+car.friction);}
+ if(Math.abs(car.speed)>.12){
+  const direction=car.speed>=0?1:-1;
+  const steerInput=(held('right')?1:0)-(held('left')?1:0);
+  car.angle+=steerInput*car.steer*direction*(.25+Math.abs(car.speed)/car.maxSpeed);
+ }
+ car.x+=Math.cos(car.angle)*car.speed;
+ car.y+=Math.sin(car.angle)*car.speed;
+ speedEl.textContent=Math.round(Math.abs(car.speed)*28);
+}
+function drawRoad(){
+ const cx=W*.5-car.x,cy=H*.5-car.y;
+ ctx.fillStyle='#29452e';ctx.fillRect(0,0,W,H);
+ // 背景の木々もコースと一緒に流れる
+ for(let i=0;i<110;i++){
+  const a=i*2.399,rr=Math.max(roadRx,roadRy)*1.45+(i%6)*15;
+  const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.78;
+  ctx.fillStyle=i%3===0?'#183522':'#203d28';
+  ctx.beginPath();ctx.arc(x,y,8+(i%4)*2,0,Math.PI*2);ctx.fill();
+ }
+ ctx.lineCap='round';
+ ctx.strokeStyle='#777';ctx.lineWidth= Math.max(76,Math.min(112,roadRy*.58));
+ ctx.beginPath();ctx.ellipse(cx,cy,roadRx,roadRy,0,0,Math.PI*2);ctx.stroke();
+ ctx.strokeStyle='#333';ctx.lineWidth=Math.max(66,Math.min(100,roadRy*.52));
+ ctx.beginPath();ctx.ellipse(cx,cy,roadRx,roadRy,0,0,Math.PI*2);ctx.stroke();
+ ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2;ctx.setLineDash([16,18]);
+ ctx.beginPath();ctx.ellipse(cx,cy,roadRx,roadRy,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+ ctx.strokeStyle='#d9d9d0';ctx.lineWidth=5;
+ ctx.beginPath();ctx.ellipse(cx,cy,roadRx+43,roadRy+28,0,0,Math.PI*2);ctx.stroke();
+ ctx.strokeStyle='#aeb4b0';ctx.lineWidth=2;
+ ctx.beginPath();ctx.ellipse(cx,cy,roadRx+43,roadRy+28,0,0,Math.PI*2);ctx.stroke();
+ ctx.fillStyle='#345b39';ctx.beginPath();ctx.ellipse(cx,cy,roadRx*.56,roadRy*.48,0,0,Math.PI*2);ctx.fill();
+}
+function drawCar(){
+ ctx.save();ctx.translate(W*.5,H*.5);ctx.rotate(car.angle);
+ ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(-17,-8,42,24);
+ ctx.fillStyle='#111';ctx.fillRect(-13,-13,9,5);ctx.fillRect(8,-13,9,5);ctx.fillRect(-13,9,9,5);ctx.fillRect(8,9,9,5);
+ ctx.fillStyle='#d83232';ctx.fillRect(-20,-10,40,20);
+ ctx.fillStyle='#9ec8d4';ctx.fillRect(-7,-8,15,16);
+ ctx.fillStyle='#fff2c4';ctx.fillRect(15,-7,5,5);ctx.fillRect(15,2,5,5);
+ ctx.fillStyle='#7c1717';ctx.fillRect(-20,-8,4,16);
+ ctx.restore();
+}
+function frame(){update();drawRoad();drawCar();requestAnimationFrame(frame);}
+frame();
 })();
 </script>
 </body>
