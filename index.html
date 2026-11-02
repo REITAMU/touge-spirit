@@ -83,7 +83,7 @@ body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden}#hud *{max-wi
 </style></head>
 <body><div id="hud">
 <div class="top">
-<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.4.3</div></div>
+<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.4.4</div></div>
 <div class="dashGroup">
   <div class="panel dash"><div class="speedLine"><span id="speed">000</span><span id="unit">KM/H</span><span class="gearLabel">GEAR</span><span id="gear">1</span></div><div id="rpmWrap"><div id="rpmBar"></div></div><div id="rpmText">950 RPM</div></div>
   <button id="camBtn">CAM: CHASE</button>
@@ -218,6 +218,8 @@ function updatePhysics(dt){
  const roadBefore=nearestRoadInfo(state.x,state.z);
  const offroadDrag=roadBefore.distance>5?1.9:0;
  let longitudinal=drive-(vf>0?brake*24:0)-(vf<0?throttle*5.5:0)-vf*(.18+Math.abs(vf)*.009+offroadDrag);
+ // Rear-wheel handbrake: strong rear braking creates a drift entry at speed.
+ if(input.hand && Math.abs(vf)>2.5) longitudinal-=Math.sign(vf)*Math.min(16,Math.abs(vf)*2.0);
  if(rpm>6900)longitudinal-=1.8;
 
  // Tire grip responds to load transfer and surface.
@@ -225,17 +227,18 @@ function updatePhysics(dt){
  const onRoad=roadInfo.distance<5.0;
  const load=THREE.MathUtils.clamp(1-longitudinal*.014,.68,1.34);
  const surfaceGrip=onRoad?1:.34;
- const baseGrip=8.8*load*surfaceGrip*(input.hand?.25:1);
+ const baseGrip=8.8*load*surfaceGrip*(input.hand?.22:1);
  const lateralAccel=THREE.MathUtils.clamp(-vl*baseGrip,-13,13);
- const slip=Math.atan2(vl,Math.max(2,Math.abs(vf)));
  const speedFactor=THREE.MathUtils.clamp(Math.abs(vf)/8,0,1);
  const desiredYaw=state.steer*(.58+Math.abs(vf)*.024)*speedFactor*(vf>=0?1:-1);
- const yawAccel=(desiredYaw-state.yawRate)*(input.hand?2.0:4.5)-state.yawRate*.85;
+ // Lower rear grip plus steering-dependent lateral breakaway makes the rear step out.
+ const handSlide=(input.hand && Math.abs(vf)>3)?state.steer*Math.min(Math.abs(vf)*.95,9):0;
+ const yawAccel=(desiredYaw-state.yawRate)*(input.hand?1.45:4.5)-state.yawRate*(input.hand?.28:.85);
  state.yawRate+=yawAccel*dt;
  state.yaw+=state.yawRate*dt;
 
  vf+=longitudinal*dt;
- vl+=lateralAccel*dt;
+ vl+=(lateralAccel+handSlide)*dt;
  const cc=Math.cos(state.yaw),ss=Math.sin(state.yaw);
  state.vx=vf*ss+vl*cc;
  state.vz=vf*cc-vl*ss;
@@ -256,7 +259,8 @@ function updatePhysics(dt){
  rpmText.textContent=Math.round(rpm).toLocaleString('en-US')+' RPM';
  rpmBar.style.width=(rpm/7200*100)+'%';
  rpmBar.style.background=rpm>6200?'#ef795e':rpm>5000?'#e6c46a':'#73d6a0';
- document.getElementById('telemetry').innerHTML=`車両：TS-86R<br>駆動：FR / 6MT<br>回転数：${Math.round(rpm)} RPM<br>横すべり：${Math.round(Math.abs(slip)*180/Math.PI)}°`;
+ const slip=Math.atan2(vl,Math.max(2,Math.abs(vf)));
+ document.getElementById('telemetry').innerHTML=`車両：TS-86R<br>駆動：FR / 6MT<br>回転数：${Math.round(rpm)} RPM<br>横すべり：${Math.round(Math.abs(slip)*180/Math.PI)}°<br>${input.hand?'HANDBRAKE ON':'HANDBRAKE OFF'}`;
 }
 function updateCamera(dt){if(camMode===0){const back=new THREE.Vector3(Math.sin(state.yaw)*9,4.1,Math.cos(state.yaw)*9);const target=new THREE.Vector3(state.x-back.x,state.y+back.y,state.z-back.z);camera.position.lerp(target,1-Math.exp(-4*dt));camera.lookAt(state.x,state.y+1,state.z)}else{const p=cockpit.getWorldPosition(new THREE.Vector3());const dir=new THREE.Vector3(Math.sin(state.yaw),0,Math.cos(state.yaw));camera.position.copy(p);camera.lookAt(p.clone().add(dir.multiplyScalar(15)).add(new THREE.Vector3(0,-.3,0)))} }
 function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.04);updatePhysics(dt);updateCamera(dt);renderer.render(scene,camera)}loop();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5))});
