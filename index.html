@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>FC Touge Racing - Prototype 0.3</title>
+<title>FC Touge Racing - Prototype 0.4</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;display:flex;justify-content:center;align-items:center;font-family:monospace;touch-action:none;user-select:none;-webkit-user-select:none}
@@ -33,9 +33,9 @@ const courseWidth=100;
 const keys={};
 const touch={left:false,right:false,high:false};
 const enemies=[
- {y:-50,speedOffset:1.0,color:"#0088ff",width:12,height:18,x:0},
- {y:-150,speedOffset:1.5,color:"#ffcc00",width:12,height:18,x:0},
- {y:-250,speedOffset:.8,color:"#ff00ff",width:12,height:18,x:0}
+ {y:-50,speedOffset:1.0,color:"#0088ff",width:12,height:18,x:0,laneOffset:-25},
+ {y:-150,speedOffset:1.5,color:"#ffcc00",width:12,height:18,x:0,laneOffset:0},
+ {y:-250,speedOffset:.8,color:"#ff00ff",width:12,height:18,x:0,laneOffset:25}
 ];
 
 addEventListener("keydown",e=>{
@@ -65,11 +65,12 @@ function getCourseCenterX(y){
 
 function resetEnemy(enemy){
  enemy.y=-40-Math.random()*100;
- const center=getCourseCenterX(enemy.y);
- const roadLeft=center-courseWidth/2+5;
- const roadRight=center+courseWidth/2-enemy.width-5;
- enemy.x=roadLeft+Math.random()*(roadRight-roadLeft);
+ // 道路の中心からの横位置を保存。以後は道路のカーブに追従させる
+ const laneChoices=[-28,0,28];
+ enemy.laneOffset=laneChoices[Math.floor(Math.random()*laneChoices.length)];
  enemy.speedOffset=.5+Math.random()*1.2;
+ const center=getCourseCenterX(enemy.y+enemy.height/2);
+ enemy.x=center-enemy.width/2+enemy.laneOffset;
 }
 enemies.forEach(resetEnemy);
 
@@ -97,11 +98,13 @@ function update(){
  enemies.forEach(enemy=>{
   // 自車より遅い敵車は、相対速度で画面下へ流れる
   enemy.y+=speed-enemy.speedOffset;
+  // 敵車の横位置を、そのY座標における道路中心に毎フレーム合わせる
+  // これでS字カーブでも車線を維持して走る
   const eCenter=getCourseCenterX(enemy.y+enemy.height/2);
+  enemy.x=eCenter-enemy.width/2+enemy.laneOffset;
   const roadLeft=eCenter-courseWidth/2;
   const roadRight=eCenter+courseWidth/2;
-  if(enemy.x<roadLeft+4)enemy.x=roadLeft+4;
-  if(enemy.x+enemy.width>roadRight-4)enemy.x=roadRight-4;
+  enemy.x=Math.max(roadLeft+5,Math.min(roadRight-enemy.width-5,enemy.x));
   if(enemy.y>canvas.height)resetEnemy(enemy);
 
   if(player.x<enemy.x+enemy.width&&
@@ -136,6 +139,7 @@ function draw(){
  ctx.fillStyle="#fff";ctx.font="12px monospace";
  ctx.fillText(`SCORE:${String(score).padStart(6,"0")}`,8,15);
  ctx.fillText(speed===4?"HI":"LOW",216,15);
+ ctx.fillText("FC TOUGE / VER 0.4",70,232);
  if(gameOver){
   ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(0,0,256,240);
   ctx.fillStyle="#f00";ctx.font="bold 16px monospace";ctx.fillText("CRASH!!",91,108);
