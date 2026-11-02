@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#101820"><title>峠魂 - TOUGE SPIRIT - Prototype</title>
+<meta name="theme-color" content="#101820"><title>峠魂 - TOUGE SPIRIT - Prototype 0.6.0</title>
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;min-width:0;max-width:100%;overflow:hidden;overscroll-behavior:none;background:#101820;color:#fff;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;touch-action:none}
@@ -89,7 +89,7 @@ canvas{z-index:0!important}
 </style></head>
 <body><div id="hud">
 <div class="top">
-<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.5.2</div></div>
+<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.6.0</div></div>
 <div class="dashGroup">
   <div class="panel dash"><div class="speedLine"><span id="speed">000</span><span id="unit">KM/H</span><span class="gearLabel">GEAR</span><span id="gear">1</span></div><div id="rpmWrap"><div id="rpmBar"></div></div><div id="rpmText">950 RPM</div></div>
   <button id="camBtn">CAM: CHASE</button>
@@ -195,123 +195,126 @@ function nearestRoadInfo(x,z){
   return {y,distance:Math.sqrt(best)};
 }
 function updatePhysics(dt){
- // Stable bicycle-model vehicle dynamics. Body forward is +Z; body right is +X.
- const clamp=THREE.MathUtils.clamp;
- const c=Math.cos(state.yaw),sn=Math.sin(state.yaw);
- // Body coordinates: forward=(sin(yaw), cos(yaw)); left=(-cos(yaw), sin(yaw)).
- // Lateral velocity is left-positive throughout the tire and yaw calculations.
- let vf=state.vx*sn+state.vz*c;
- let vl=-state.vx*c+state.vz*sn;
+  // Unified vehicle coordinates:
+  // forward = (sin(yaw), cos(yaw)); left = (-cos(yaw), sin(yaw)).
+  // Positive steer = left. Positive yawRate = right.
+  const clamp=THREE.MathUtils.clamp;
+  const c=Math.cos(state.yaw), sn=Math.sin(state.yaw);
+  let vf=state.vx*sn+state.vz*c;
+  let vl=-state.vx*c+state.vz*sn;
 
- // Gearbox: one shift per press.
- if(shiftCooldown>0) shiftCooldown-=dt;
- if(input.shiftUp&&!prevShiftUp&&shiftCooldown<=0){gear=Math.min(6,gear+1);shiftCooldown=.24;}
- if(input.shiftDown&&!prevShiftDown&&shiftCooldown<=0){gear=Math.max(1,gear-1);shiftCooldown=.24;}
- prevShiftUp=input.shiftUp;prevShiftDown=input.shiftDown;
+  if(shiftCooldown>0) shiftCooldown-=dt;
+  if(input.shiftUp&&!prevShiftUp&&shiftCooldown<=0){gear=Math.min(6,gear+1);shiftCooldown=.24;}
+  if(input.shiftDown&&!prevShiftDown&&shiftCooldown<=0){gear=Math.max(1,gear-1);shiftCooldown=.24;}
+  prevShiftUp=input.shiftUp;prevShiftDown=input.shiftDown;
 
- const ratios=[3.20,2.10,1.48,1.12,.90,.74];
- const wheelRadius=.34, finalDrive=4.10;
- const wheelRpm=Math.abs(vf)/(2*Math.PI*wheelRadius)*60;
- const coupledRpm=wheelRpm*ratios[gear-1]*finalDrive;
- const freeRpm=input.throttle?1050+Math.abs(vf)*250:950;
- const targetRpm=clamp(Math.max(freeRpm,coupledRpm),950,7200);
- rpm+=(targetRpm-rpm)*Math.min(1,dt*(input.throttle?5:8));
+  const ratios=[3.20,2.10,1.48,1.12,.90,.74];
+  const wheelRadius=.34, finalDrive=4.10;
+  const wheelRpm=Math.abs(vf)/(2*Math.PI*wheelRadius)*60;
+  const coupledRpm=wheelRpm*ratios[gear-1]*finalDrive;
+  const freeRpm=input.throttle?1050+Math.abs(vf)*250:950;
+  const targetRpm=clamp(Math.max(freeRpm,coupledRpm),950,7200);
+  rpm+=(targetRpm-rpm)*Math.min(1,dt*(input.throttle?5:8));
 
- const throttle=input.throttle?1:0;
- const brake=input.brake?1:0;
- const steerTarget=(input.left?1:0)-(input.right?1:0);
- state.steer+=(steerTarget-state.steer)*Math.min(1,dt*5.5);
- // Positive steering input means left; positive tire force is also leftward.
- const steerAngle=-state.steer*0.48*clamp(1-Math.abs(vf)/95,.48,1);
+  const throttle=input.throttle?1:0;
+  const brake=input.brake?1:0;
+  const steerTarget=(input.left?1:0)-(input.right?1:0);
+  state.steer+=(steerTarget-state.steer)*Math.min(1,dt*5.5);
+  // Positive angle is left; steering fades gently with speed.
+  const steerAngle=state.steer*0.48*clamp(1-Math.abs(vf)/110,.35,1);
 
- const roadInfo=nearestRoadInfo(state.x,state.z);
- const onRoad=roadInfo.distance<5.0;
- const surfaceMu=onRoad?1.0:.48;
- const mass=1180, wheelBase=2.64, lf=1.32, lr=1.32;
- const gravity=9.81, iz=mass*1.55;
- const gearTorque=[1,.72,.52,.40,.32,.27][gear-1];
- const torqueShape=clamp(1-Math.pow((rpm-4300)/4300,2)*.48,.35,1);
- const driveForce=throttle*mass*5.1*gearTorque*torqueShape;
- const brakeForce=brake*mass*7.2;
- const handActive=input.hand&&Math.abs(vf)>3.0;
- const handBrakeForce=handActive?mass*2.4:0;
- let fx=driveForce*Math.sign(vf||1)-Math.sign(vf||1)*(brakeForce+handBrakeForce);
- fx-=vf*(18+Math.abs(vf)*.42);
- if(rpm>6900)fx-=Math.sign(vf||1)*900;
+  const roadInfo=nearestRoadInfo(state.x,state.z);
+  const onRoad=roadInfo.distance<5.0;
+  const surfaceMu=onRoad?1.0:.48;
+  const mass=1180, wheelBase=2.64, lf=1.32, lr=1.32;
+  const gravity=9.81, iz=mass*1.55;
 
- // Longitudinal load transfer changes the normal load at each axle.
- const axEstimate=clamp(fx/mass,-7,5);
- const frontLoad=mass*gravity*lr/wheelBase-mass*axEstimate*.52;
- const rearLoad=mass*gravity*lf/wheelBase+mass*axEstimate*.52;
- const frontNormal=Math.max(mass*gravity*.12,frontLoad);
- const rearNormal=Math.max(mass*gravity*.12,rearLoad);
- const frontMu=surfaceMu;
- const rearMu=surfaceMu*(handActive?.30:1.0);
+  const gearTorque=[1,.72,.52,.40,.32,.27][gear-1];
+  const torqueShape=clamp(1-Math.pow((rpm-4300)/4300,2)*.48,.35,1);
+  const driveForce=throttle*mass*3.9*gearTorque*torqueShape;
+  const brakeForce=brake*mass*6.0;
+  const handActive=input.hand&&Math.abs(vf)>3.0;
+  const handBrakeForce=handActive?mass*1.8:0;
+  let fx=driveForce*Math.sign(vf||1)-Math.sign(vf||1)*(brakeForce+handBrakeForce);
+  fx-=vf*(24+Math.abs(vf)*.48);
+  if(rpm>6900)fx-=Math.sign(vf||1)*700;
 
- // Slip angles are measured at each axle, including yaw velocity.
- const vxSafe=Math.max(2.0,Math.abs(vf));
- // Positive yaw turns right: the front point moves right and the rear moves left.
- const frontVy=vl-state.yawRate*lf;
- const rearVy=vl+state.yawRate*lr;
- const direction=Math.sign(vf||1);
- const alphaFront=Math.atan2(frontVy,vxSafe)*direction-steerAngle;
- const alphaRear=Math.atan2(rearVy,vxSafe)*direction;
- const corneringFront=frontNormal*7.0;
- const corneringRear=rearNormal*7.4;
- let fyFront=-corneringFront*alphaFront;
- let fyRear=-corneringRear*alphaRear;
- // Combined tire force: braking/drive consumes some of the available grip.
- const frontLimit=frontMu*frontNormal*.96;
- const rearLongUse=Math.abs(fx)*.58+(handActive?handBrakeForce*.42:0);
- const rearLimit=rearMu*rearNormal*.96*Math.sqrt(Math.max(.08,1-Math.pow(clamp(rearLongUse/(rearMu*rearNormal||1),0,.96),2)));
- fyFront=clamp(fyFront,-frontLimit,frontLimit);
- fyRear=clamp(fyRear,-rearLimit,rearLimit);
+  // Longitudinal load transfer; keep each axle load positive.
+  const axEstimate=clamp(fx/mass,-6,4.5);
+  const staticFront=mass*gravity*lr/wheelBase;
+  const staticRear=mass*gravity*lf/wheelBase;
+  const frontNormal=Math.max(mass*gravity*.16,staticFront-mass*axEstimate*.42);
+  const rearNormal=Math.max(mass*gravity*.16,staticRear+mass*axEstimate*.42);
+  const frontMu=surfaceMu;
+  const rearMu=surfaceMu*(handActive?.38:1.0);
 
- // Convert tire forces to body acceleration and yaw moment.
- const lateralForce=fyFront+fyRear;
- // Leftward force at the front yaws left; leftward force at the rear yaws right.
- const yawMoment=-lf*fyFront+lr*fyRear;
- const yawAccel=yawMoment/iz-state.yawRate*(handActive?1.25:2.1);
- state.yawRate+=yawAccel*dt;
- state.yawRate=clamp(state.yawRate,-2.8,2.8);
+  // At the front axle, positive yaw (right) moves the nose right,
+  // which is negative in our left-positive lateral coordinate.
+  const vxSafe=Math.max(2.0,Math.abs(vf));
+  const direction=Math.sign(vf||1);
+  const frontVy=vl-state.yawRate*lf;
+  const rearVy=vl+state.yawRate*lr;
+  const alphaFront=Math.atan2(frontVy,vxSafe)*direction-steerAngle;
+  const alphaRear=Math.atan2(rearVy,vxSafe)*direction;
 
- const lateralAccel=lateralForce/mass-vf*state.yawRate;
- const longitudinalAccel=fx/mass+vl*state.yawRate;
- vf+=longitudinalAccel*dt;
- vl+=lateralAccel*dt;
- // Rolling resistance and a gentle low-speed stabilizer prevent endless creep.
- if(!throttle&&!brake&&Math.abs(vf)<.7)vf*=Math.max(0,1-dt*2.5);
- state.yaw+=state.yawRate*dt;
- const cc=Math.cos(state.yaw),ss=Math.sin(state.yaw);
- // Convert forward + left-positive lateral velocity to world coordinates.
- state.vx=vf*ss-vl*cc;
- state.vz=vf*cc+vl*ss;
- state.x+=state.vx*dt;
- state.z+=state.vz*dt;
- state.y+=(roadInfo.y-.12-state.y)*Math.min(1,dt*8);
+  // Tire cornering stiffness and friction-circle limits.
+  const corneringFront=frontNormal*5.2;
+  const corneringRear=rearNormal*5.5;
+  let fyFront=-corneringFront*alphaFront;
+  let fyRear=-corneringRear*alphaRear;
+  const frontLimit=frontMu*frontNormal*.92;
+  const rearLongUse=Math.abs(fx)*.48+(handActive?handBrakeForce*.35:0);
+  const rearLimit=rearMu*rearNormal*.92*
+    Math.sqrt(Math.max(.12,1-Math.pow(clamp(rearLongUse/(rearMu*rearNormal||1),0,.94),2)));
+  fyFront=clamp(fyFront,-frontLimit,frontLimit);
+  fyRear=clamp(fyRear,-rearLimit,rearLimit);
 
- car.position.set(state.x,state.y,state.z);
- const pitch=clamp(-longitudinalAccel*.018,-.12,.12);
- const roll=clamp(lateralAccel*.012,-.14,.14);
- car.rotation.set(pitch,state.yaw+Math.PI,roll);
+  const lateralForce=fyFront+fyRear;
+  // Positive yaw is right: front-left force turns left (negative yaw).
+  const yawMoment=-lf*fyFront+lr*fyRear;
+  const yawDamping=handActive?1.8:2.8;
+  const yawAccel=yawMoment/iz-state.yawRate*yawDamping;
+  state.yawRate=clamp(state.yawRate+yawAccel*dt,-1.65,1.65);
 
- document.getElementById('surface').textContent=onRoad?'ASPHALT':'GRAVEL · LOW GRIP';
- document.getElementById('surface').style.color=onRoad?'#b9d9c3':'#ffb27c';
- // Keep steering yaw and wheel axle rotation on separate pivots.
- // This prevents Euler-axis coupling from making the front wheels wobble.
- for(const w of wheels){
-   w.spin.rotation.x += vf*dt/wheelRadius;
-   w.pivot.rotation.y = (w.z<0) ? steerAngle : 0;
- }
- const kmh=Math.round(Math.abs(vf)*3.6);
- speedEl.textContent=String(kmh).padStart(3,'0');
- gearEl.textContent=String(gear);
- rpmText.textContent=Math.round(rpm).toLocaleString('en-US')+' RPM';
- rpmBar.style.width=(rpm/7200*100)+'%';
- rpmBar.style.background=rpm>6200?'#ef795e':rpm>5000?'#e6c46a':'#73d6a0';
- const slipAngle=Math.atan2(Math.abs(vl),Math.max(1,Math.abs(vf)))*180/Math.PI;
- const driftLabel=Math.abs(alphaRear)>Math.abs(alphaFront)+.08?'OVERSTEER':(Math.abs(alphaFront)>Math.abs(alphaRear)+.08?'UNDERSTEER':'GRIP');
- document.getElementById('telemetry').innerHTML=`車両：TS-86R<br>駆動：FR / 6MT<br>回転数：${Math.round(rpm)} RPM<br>横すべり：${Math.round(slipAngle)}°<br>${driftLabel}${handActive?' · HANDBRAKE':''}`;
+  // Rotating-body correction for forward/left-positive coordinates.
+  const longitudinalAccel=fx/mass-state.yawRate*vl;
+  const lateralAccel=lateralForce/mass+state.yawRate*vf;
+  vf+=longitudinalAccel*dt;
+  vl+=lateralAccel*dt;
+
+  // Mild lateral damping at parking speed prevents numerical drift.
+  if(Math.abs(vf)<1.2&&!throttle) vl*=Math.max(0,1-dt*2.0);
+  if(!throttle&&!brake&&Math.abs(vf)<.7) vf*=Math.max(0,1-dt*2.5);
+
+  state.yaw+=state.yawRate*dt;
+  const cc=Math.cos(state.yaw), ss=Math.sin(state.yaw);
+  state.vx=vf*ss-vl*cc;
+  state.vz=vf*cc+vl*ss;
+  state.x+=state.vx*dt;
+  state.z+=state.vz*dt;
+  state.y+=(roadInfo.y-.12-state.y)*Math.min(1,dt*8);
+
+  car.position.set(state.x,state.y,state.z);
+  const pitch=clamp(-longitudinalAccel*.014,-.10,.10);
+  const roll=clamp(-lateralAccel*.010,-.10,.10);
+  car.rotation.set(pitch,state.yaw+Math.PI,roll);
+
+  document.getElementById('surface').textContent=onRoad?'ASPHALT':'GRAVEL · LOW GRIP';
+  document.getElementById('surface').style.color=onRoad?'#b9d9c3':'#ffb27c';
+  for(const w of wheels){
+    w.spin.rotation.x+=vf*dt/wheelRadius;
+    w.pivot.rotation.y=(w.z<0)?steerAngle:0;
+  }
+
+  const kmh=Math.round(Math.abs(vf)*3.6);
+  speedEl.textContent=String(kmh).padStart(3,'0');
+  gearEl.textContent=String(gear);
+  rpmText.textContent=Math.round(rpm).toLocaleString('en-US')+' RPM';
+  rpmBar.style.width=(rpm/7200*100)+'%';
+  rpmBar.style.background=rpm>6200?'#ef795e':rpm>5000?'#e6c46a':'#73d6a0';
+  const slipAngle=Math.atan2(Math.abs(vl),Math.max(1,Math.abs(vf)))*180/Math.PI;
+  const driftLabel=Math.abs(alphaRear)>Math.abs(alphaFront)+.08?'OVERSTEER':(Math.abs(alphaFront)>Math.abs(alphaRear)+.08?'UNDERSTEER':'GRIP');
+  document.getElementById('telemetry').innerHTML=`車両：TS-86R<br>駆動：FR / 6MT<br>回転数：${Math.round(rpm)} RPM<br>横すべり：${Math.round(slipAngle)}°<br>${driftLabel}${handActive?' · HANDBRAKE':''}`;
 }
 function updateCamera(dt){if(camMode===0){const back=new THREE.Vector3(Math.sin(state.yaw)*9,4.1,Math.cos(state.yaw)*9);const target=new THREE.Vector3(state.x-back.x,state.y+back.y,state.z-back.z);camera.position.lerp(target,1-Math.exp(-4*dt));camera.lookAt(state.x,state.y+1,state.z)}else{const p=cockpit.getWorldPosition(new THREE.Vector3());const dir=new THREE.Vector3(Math.sin(state.yaw),0,Math.cos(state.yaw));camera.position.copy(p);camera.lookAt(p.clone().add(dir.multiplyScalar(15)).add(new THREE.Vector3(0,-.3,0)))} }
 function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.04);updatePhysics(dt);updateCamera(dt);renderer.render(scene,camera)}loop();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5))});
