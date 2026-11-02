@@ -1,321 +1,177 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#101820"><title>峠魂 - TOUGE SPIRIT - Prototype 0.6.0</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>TOUGE DRIFT - Prototype 0.1</title>
 <style>
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;min-width:0;max-width:100%;overflow:hidden;overscroll-behavior:none;background:#101820;color:#fff;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;touch-action:none}
-canvas{display:block;position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;max-width:100%!important;z-index:0!important;pointer-events:none!important;}
-#hud{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;max-width:100%!important;overflow:hidden!important;pointer-events:none;touch-action:none;z-index:100!important;isolation:isolate;display:block!important;visibility:visible!important;opacity:1!important}
-.top{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:clamp(12px,2.2vw,30px);right:clamp(12px,2.2vw,30px);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.brandBlock{min-width:0;text-shadow:0 2px 8px #000}
-.brand{font-size:clamp(17px,2.1vw,25px);font-weight:900;letter-spacing:.12em;white-space:nowrap}
-.sub{font-size:clamp(8px,1vw,11px);color:#b9c8d0;letter-spacing:.16em;white-space:nowrap}
-.dashGroup{display:flex;align-items:flex-start;gap:9px}
-.panel{background:#071018d9;border:1px solid #ffffff35;border-radius:15px;padding:9px 13px;backdrop-filter:blur(10px);box-shadow:0 5px 18px #0004}
-.dash{min-width:174px}
-.speedLine{display:flex;align-items:baseline;gap:7px;white-space:nowrap}
-#speed{font-size:clamp(27px,4vw,42px);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
-#unit{font-size:10px;color:#b8c5cc}
-.gearLabel{font-size:8px;letter-spacing:.12em;color:#9eafb8;margin-left:5px}
-#gear{font-size:20px;font-weight:900;min-width:15px;text-align:center}
-#rpmWrap{width:100%;height:5px;background:#ffffff35;border-radius:9px;margin-top:7px;overflow:hidden}
-#rpmBar{height:100%;width:8%;background:#73d6a0;transition:width .08s linear}
-#rpmText{font-size:9px;color:#c9d7dc;text-align:right;margin-top:3px;font-variant-numeric:tabular-nums}
-#camBtn{position:relative!important;z-index:101!important;pointer-events:auto!important;touch-action:manipulation;border:1px solid #ffffff50;background:#071018df;color:white;border-radius:13px;padding:12px 14px;min-height:48px;font-size:11px;font-weight:800;white-space:nowrap}
-#telemetry{position:absolute;left:clamp(12px,2.2vw,30px);top:calc(env(safe-area-inset-top,0px) + 76px);font-size:11px;line-height:1.65;color:#d7e1e6;min-width:142px}
-#damage{position:absolute;right:clamp(12px,2.2vw,30px);top:calc(env(safe-area-inset-top,0px) + 78px);font-size:10px;color:#ffd6a6;text-align:right;text-shadow:0 1px 4px #000}
-#surface{color:#b9d9c3}
-#hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#071018b8;padding:8px 12px;border-radius:9px;font-size:12px;color:#e5edf1;white-space:nowrap;opacity:1;transition:opacity 1s;text-align:center;max-width:85vw}
-#footer{position:absolute;bottom:calc(108px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font-size:10px;color:#d4dce0;text-shadow:0 1px 4px #000;white-space:nowrap;text-align:center}
-#controls{position:absolute;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:flex-end;padding:0 clamp(12px,2.2vw,30px);pointer-events:none;gap:10px}
-.cluster{display:flex;gap:8px;align-items:flex-end;pointer-events:auto;min-width:0}
-.ctrl{position:relative!important;z-index:101!important;pointer-events:auto!important;width:clamp(54px,6vw,72px);height:clamp(54px,6vw,72px);border-radius:17px;border:1px solid #ffffff65;background:#071018c9;color:#fff;font-weight:850;font-size:12px;display:grid;place-items:center;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 5px 16px #0006;backdrop-filter:blur(7px)}
-.ctrl.big{width:clamp(68px,7.2vw,88px);height:clamp(82px,9vw,104px);font-size:14px}
-.ctrl.active{background:#d95b28e8;border-color:#ffb18e;transform:scale(.97)}
-.steer{font-size:25px}
-.shiftPair,.pedalPair{display:flex;flex-direction:column;gap:7px}
-.small{width:clamp(62px,6vw,76px);height:clamp(39px,4.5vw,48px);font-size:9px;border-radius:13px}
-#controls .drivingCluster{gap:7px;min-width:0;flex-shrink:0}
-@media(orientation:portrait){
- .top{gap:5px}
- .brand{font-size:15px}
- .sub{font-size:7px;letter-spacing:.1em}
- .dash{min-width:126px;padding:7px 9px}
- #speed{font-size:25px}
- #gear{font-size:17px}
- #camBtn{min-height:40px;padding:8px;font-size:9px}
- #telemetry{top:calc(env(safe-area-inset-top,0px) + 62px);font-size:9px;padding:6px 8px;min-width:120px}
- #damage{top:calc(env(safe-area-inset-top,0px) + 68px);font-size:8px}
- #controls{padding:0 9px;gap:5px}
- .cluster{gap:5px}
- .ctrl{width:49px;height:52px;border-radius:13px;font-size:10px}
- .ctrl.big{width:60px;height:76px;font-size:11px}
- .steer{font-size:20px}
- .small{width:51px;height:38px;font-size:8px}
- #controls .drivingCluster{gap:5px}
- #footer{bottom:calc(94px + env(safe-area-inset-bottom,0px));font-size:8px;max-width:90vw;white-space:normal}
- #hint{font-size:10px}
-}
-@media(max-width:900px) and (orientation:landscape){
- #controls{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right));gap:4px}
- .steeringCluster{gap:5px}
- #controls .drivingCluster{gap:5px}
- .ctrl{width:clamp(44px,5.2vw,58px);height:clamp(46px,6.5vw,58px)}
- .ctrl.big{width:clamp(54px,6vw,68px);height:clamp(62px,8vw,78px)}
- .small{width:clamp(48px,5.2vw,60px);height:clamp(32px,4.2vw,40px);font-size:8px}
-}
-@media(max-height:430px) and (orientation:landscape){
- .top{top:6px}
- #telemetry{top:66px}
- #damage{top:68px}
- #controls{bottom:6px}
- .ctrl{height:48px;width:52px}
- .ctrl.big{height:66px;width:70px}
- .small{height:34px;width:62px}
- #footer{display:none}
-}
-@media(min-width:1000px){
- #controls{max-width:1300px;left:50%;right:auto;width:100%;transform:translateX(-50%)}
-}
-body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;isolation:isolate}#hud *{max-width:100%}
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; width: 100%; height: 100%; overflow: hidden;
+    background: #172019; touch-action: none; user-select: none;
+    -webkit-user-select: none; -webkit-touch-callout: none;
+    font-family: system-ui, sans-serif;
+  }
+  #game { display:block; width:100vw; height:100vh; }
+  #hud {
+    position: fixed; top: max(12px, env(safe-area-inset-top)); left: 14px;
+    color: white; text-shadow: 0 2px 4px #000; pointer-events:none;
+  }
+  #speed { font-size: 30px; font-weight: 800; line-height: 1; }
+  #unit { font-size: 11px; opacity: .8; margin-left: 4px; }
+  #version { font-size: 11px; opacity: .7; margin-top: 6px; letter-spacing: 1px; }
+  .controls {
+    position: fixed; bottom: max(18px, env(safe-area-inset-bottom));
+    display:flex; gap:12px; align-items:end;
+  }
+  #steering { left: 14px; }
+  #pedals { right: 14px; flex-direction:column; }
+  .btn {
+    width: min(19vw, 82px); height: min(19vw, 82px);
+    border: 2px solid rgba(255,255,255,.55); border-radius: 50%;
+    color:white; background:rgba(20,25,28,.55); font-size:25px;
+    font-weight:800; display:grid; place-items:center;
+    -webkit-tap-highlight-color: transparent; touch-action:none;
+    box-shadow: 0 3px 12px rgba(0,0,0,.3);
+  }
+  .btn.active { background:rgba(255,150,30,.8); transform:scale(.96); }
+  #pedals .btn { width:min(17vw,74px); height:min(17vw,74px); font-size:15px; border-radius:18px; }
+  #brake { background:rgba(160,35,35,.55); }
+  #gas { background:rgba(35,130,65,.6); }
+  #hint {
+    position:fixed; left:50%; top: max(12px, env(safe-area-inset-top));
+    transform:translateX(-50%); color:#fff; font-size:11px;
+    opacity:.72; text-shadow:0 1px 3px #000; pointer-events:none;
+    white-space:nowrap;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud"><div><span id="speed">0</span><span id="unit">km/h</span></div><div id="version">TOUGE DRIFT / PROTOTYPE 0.1</div></div>
+<div id="hint">タッチ操作 / キーボード操作対応</div>
+<div class="controls" id="steering">
+  <button class="btn" id="left" aria-label="左">◀</button>
+  <button class="btn" id="right" aria-label="右">▶</button>
+</div>
+<div class="controls" id="pedals">
+  <button class="btn" id="gas">アクセル</button>
+  <button class="btn" id="brake">ブレーキ</button>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const speedEl = document.getElementById('speed');
+  let W=0, H=0, dpr=1;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = Math.round(W*dpr); canvas.height = Math.round(H*dpr);
+    canvas.style.width = W+'px'; canvas.style.height = H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize); resize();
 
-/* iOS Safari overlay hardening: keep HUD above the WebGL canvas */
-#hud{display:block!important;visibility:visible!important;opacity:1!important;position:fixed!important;top:0!important;right:0!important;bottom:0!important;left:0!important;z-index:100!important;pointer-events:none!important}
-#hud .top,#hud #telemetry,#hud #damage,#hud #hint,#hud #footer,#hud #controls{visibility:visible!important;opacity:1}
-#hud button,#hud .ctrl{position:relative!important;z-index:101!important;pointer-events:auto!important}
-canvas{z-index:0!important}
-</style></head>
-<body><div id="hud">
-<div class="top">
-<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.6.0</div></div>
-<div class="dashGroup">
-  <div class="panel dash"><div class="speedLine"><span id="speed">000</span><span id="unit">KM/H</span><span class="gearLabel">GEAR</span><span id="gear">1</span></div><div id="rpmWrap"><div id="rpmBar"></div></div><div id="rpmText">950 RPM</div></div>
-  <button id="camBtn">CAM: CHASE</button>
-</div>
-</div>
-<div id="telemetry" class="panel">車両：TS-86R<br>FR · 6MT<br>DRY ASPHALT</div><div id="damage">TEST COURSE · HAKONE RIDGE<br><span id="surface">ASPHALT</span></div>
-<div id="hint">横画面推奨 · Q/E または SHIFT −/+ で変速</div>
-<div id="footer">アクセルを踏み、ブレーキで荷重を移し、ステアリングで曲がろう。</div>
-<div id="controls">
-  <div class="cluster steeringCluster">
-    <div class="ctrl steer" data-control="left">◀</div>
-    <div class="ctrl steer" data-control="right">▶</div>
-  </div>
-  <div class="cluster drivingCluster">
-    <div class="shiftPair">
-      <div class="ctrl small" data-control="shiftUp">SHIFT +</div>
-      <div class="ctrl small" data-control="shiftDown">SHIFT −</div>
-    </div>
-    <div class="pedalPair">
-      <div class="ctrl small" data-control="hand">HANDBRAKE</div>
-      <div class="ctrl small" data-control="brake">BRAKE</div>
-    </div>
-    <div class="ctrl big" data-control="throttle">ACCEL</div>
-  </div>
-</div>
-</div>
-<script type="module">
+  const input = { gas:false, brake:false, left:false, right:false };
+  const car = { x:0, y:0, angle:-Math.PI/2, speed:0, maxSpeed:7.5,
+    accel:0.105, brakePower:0.16, friction:0.025, steer:0.035 };
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
-// iOS Safari: prevent page pinch/double-tap zoom from hijacking steering.
-(function lockGameViewport(){
-  const stopZoom = e => { if(e.cancelable) e.preventDefault(); };
-  ['gesturestart','gesturechange','gestureend'].forEach(type =>
-    document.addEventListener(type, stopZoom, {passive:false})
-  );
-  let lastTouchEnd = 0;
-  document.addEventListener('touchend', e => {
-    const now = Date.now();
-    if(now-lastTouchEnd < 320) stopZoom(e);
-    lastTouchEnd = now;
-  }, {passive:false});
-  document.addEventListener('touchmove', e => {
-    if(e.touches && e.touches.length > 1) stopZoom(e);
-  }, {passive:false});
-  document.addEventListener('dblclick', stopZoom, {passive:false});
-  document.addEventListener('contextmenu', e => e.preventDefault());
+  function bindButton(id, key) {
+    const el=document.getElementById(id);
+    const on=e=>{ e.preventDefault(); input[key]=true; el.classList.add('active'); };
+    const off=e=>{ e.preventDefault(); input[key]=false; el.classList.remove('active'); };
+    el.addEventListener('pointerdown',on);
+    ['pointerup','pointercancel','pointerleave','lostpointercapture'].forEach(t=>el.addEventListener(t,off));
+  }
+  bindButton('gas','gas'); bindButton('brake','brake');
+  bindButton('left','left'); bindButton('right','right');
+
+  const keys={};
+  window.addEventListener('keydown',e=>{
+    keys[e.key.toLowerCase()]=true;
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  },{passive:false});
+  window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+  function held(name) {
+    if(name==='gas') return input.gas||keys.arrowup||keys.w;
+    if(name==='brake') return input.brake||keys.arrowdown||keys.s;
+    if(name==='left') return input.left||keys.arrowleft||keys.a;
+    return input.right||keys.arrowright||keys.d;
+  }
+
+  function update() {
+    if(held('gas')) car.speed=Math.min(car.maxSpeed,car.speed+car.accel);
+    if(held('brake')) {
+      if(car.speed>0) car.speed=Math.max(0,car.speed-car.brakePower);
+      else car.speed=Math.max(-2.2,car.speed-car.accel*.55);
+    }
+    if(!held('gas')&&!held('brake')) {
+      if(car.speed>0) car.speed=Math.max(0,car.speed-car.friction);
+      if(car.speed<0) car.speed=Math.min(0,car.speed+car.friction);
+    }
+    if(Math.abs(car.speed)>.12) {
+      const direction=car.speed>=0?1:-1;
+      const steerInput=(held('right')?1:0)-(held('left')?1:0);
+      car.angle += steerInput*car.steer*direction*(.25+Math.abs(car.speed)/car.maxSpeed);
+    }
+    car.x += Math.cos(car.angle)*car.speed;
+    car.y += Math.sin(car.angle)*car.speed;
+    speedEl.textContent=Math.round(Math.abs(car.speed)*28);
+  }
+
+  function drawRoad() {
+    const cx=W*.5, cy=H*.5, r=Math.min(W,H)*.27;
+    ctx.fillStyle='#29452e'; ctx.fillRect(0,0,W,H);
+    // 遠景の木々
+    for(let i=0;i<90;i++) {
+      const a=i*2.399, rr=r*1.65+(i%5)*13;
+      const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr*.72;
+      ctx.fillStyle=i%3===0?'#183522':'#203d28';
+      ctx.beginPath(); ctx.arc(x,y,8+(i%4)*2,0,Math.PI*2); ctx.fill();
+    }
+    ctx.lineCap='round';
+    ctx.strokeStyle='#777'; ctx.lineWidth= Math.max(76,Math.min(112,r*.58));
+    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.28,r*.82,0,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle='#333'; ctx.lineWidth=Math.max(66,Math.min(100,r*.52));
+    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.28,r*.82,0,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=2; ctx.setLineDash([16,18]);
+    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.28,r*.82,0,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+    // ガードレール風の外周
+    ctx.strokeStyle='#d9d9d0'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.28+43,r*.82+28,0,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle='#aeb4b0'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(cx,cy,r*1.28+43,r*.82+28,0,0,Math.PI*2); ctx.stroke();
+    // 中央の草地
+    ctx.fillStyle='#345b39'; ctx.beginPath(); ctx.ellipse(cx,cy,r*.72,r*.42,0,0,Math.PI*2); ctx.fill();
+  }
+
+  function drawCar() {
+    const x=W*.5, y=H*.5;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(car.angle);
+    // 影
+    ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(-17,-8,42,24);
+    // タイヤ
+    ctx.fillStyle='#111';
+    ctx.fillRect(-13,-13,9,5); ctx.fillRect(8,-13,9,5);
+    ctx.fillRect(-13,9,9,5); ctx.fillRect(8,9,9,5);
+    // 車体
+    ctx.fillStyle='#d83232'; ctx.fillRect(-20,-10,40,20);
+    ctx.fillStyle='#9ec8d4'; ctx.fillRect(-7,-8,15,16);
+    ctx.fillStyle='#fff2c4'; ctx.fillRect(15,-7,5,5); ctx.fillRect(15,2,5,5);
+    ctx.fillStyle='#7c1717'; ctx.fillRect(-20,-8,4,16);
+    ctx.restore();
+  }
+
+  function frame() {
+    update();
+    drawRoad();
+    drawCar();
+    requestAnimationFrame(frame);
+  }
+  frame();
 })();
-
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x91a9b1);scene.fog=new THREE.FogExp2(0x91a9b1,.009);
-const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,900);camera.position.set(0,5,10);
-const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;renderer.domElement.style.zIndex='0';renderer.domElement.style.pointerEvents='none';document.body.insertBefore(renderer.domElement,document.body.firstChild);const hudRoot=document.getElementById('hud');if(hudRoot)document.body.appendChild(hudRoot);
-scene.add(new THREE.HemisphereLight(0xdcecff,0x40503a,2.0));const sun=new THREE.DirectionalLight(0xffe0b3,2.4);sun.position.set(-80,130,60);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-100;sun.shadow.camera.right=100;sun.shadow.camera.top=100;sun.shadow.camera.bottom=-100;scene.add(sun);
-const mat=(c,r=.9)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(1000,1000),mat(0x526448));ground.rotation.x=-Math.PI/2;ground.position.y=-.65;ground.receiveShadow=true;scene.add(ground);
-// Procedural mountain silhouettes
-for(let i=0;i<70;i++){const a=i/70*Math.PI*2,rad=115+Math.random()*75,h=18+Math.random()*48;const m=new THREE.Mesh(new THREE.ConeGeometry(12+Math.random()*18,h,5),mat(i%3?0x53665b:0x68786a));m.position.set(Math.cos(a)*rad,h/2-1,Math.sin(a)*rad);m.rotation.y=Math.random()*2;scene.add(m)}
-// Winding mountain road, generated as a smooth 3D curve and ribbon
-const pts=[];for(let i=0;i<18;i++){const z=-105+i*12;const x=Math.sin(i*.68)*23+Math.sin(i*.21)*9;const y=1.2+Math.sin(i*.55)*2.2;pts.push(new THREE.Vector3(x,y,z))}const path=new THREE.CatmullRomCurve3(pts);const roadPts=path.getPoints(900);const verts=[],indices=[];for(let i=0;i<roadPts.length;i++){const p=roadPts[i],t=path.getTangent(i/(roadPts.length-1)).normalize(),side=new THREE.Vector3(-t.z,0,t.x).normalize();verts.push(p.x+side.x*5.2,p.y,p.z+side.z*5.2,p.x-side.x*5.2,p.y,p.z-side.z*5.2);if(i<roadPts.length-1){let n=i*2;indices.push(n,n+1,n+2,n+1,n+3,n+2)}}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(indices);geo.computeVertexNormals();const road=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0x34383a,roughness:1,side:THREE.DoubleSide}));road.receiveShadow=true;scene.add(road);
-// Road edge lines and dashed center markers
-function makeRibbon(offset,width,color,yoff=.035){const v=[],ix=[];for(let i=0;i<roadPts.length;i++){const p=roadPts[i],t=path.getTangent(i/(roadPts.length-1)).normalize(),s=new THREE.Vector3(-t.z,0,t.x).normalize();for(const d of [offset-width/2,offset+width/2])v.push(p.x+s.x*d,p.y+yoff,p.z+s.z*d);if(i<roadPts.length-1){let n=i*2;ix.push(n,n+1,n+2,n+1,n+3,n+2)}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(ix);g.computeVertexNormals();scene.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide}))) }
-makeRibbon(4.92,.13,0xd5d0b8);makeRibbon(-4.92,.13,0xd5d0b8);
-for(let i=0;i<roadPts.length-1;i+=13){const p=roadPts[i],t=path.getTangent(i/(roadPts.length-1)).normalize(),s=new THREE.Vector3(-t.z,0,t.x).normalize();const dash=new THREE.Mesh(new THREE.BoxGeometry(.13,.035,2.2),mat(0xd8d0ae));dash.position.set(p.x,p.y+.055,p.z);dash.rotation.y=Math.atan2(t.x,t.z);scene.add(dash)}
-// Guard posts along the outside edges
-for(let i=8;i<roadPts.length;i+=12){const p=roadPts[i],t=path.getTangent(i/(roadPts.length-1)).normalize(),s=new THREE.Vector3(-t.z,0,t.x).normalize();for(const side of [-1,1]){const post=new THREE.Mesh(new THREE.BoxGeometry(.13,.8,.13),mat(0xb9b7a8));post.position.set(p.x+s.x*side*5.55,p.y+.4,p.z+s.z*side*5.55);post.castShadow=true;scene.add(post)}}
-// Scattered stylized trees
-for(let i=0;i<250;i++){const a=Math.random()*Math.PI*2,r=20+Math.random()*115,x=Math.cos(a)*r,z=Math.sin(a)*r;let near=1e9;for(let j=0;j<roadPts.length;j+=8){const q=roadPts[j],d=(q.x-x)**2+(q.z-z)**2;if(d<near)near=d}if(near<150)continue;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.18,.28,2.2,5),mat(0x493b2c));trunk.position.set(x,.4,z);const crown=new THREE.Mesh(new THREE.ConeGeometry(1.7+Math.random()*1.5,5+Math.random()*4,6),mat([0x263f32,0x304b38,0x405b3e][i%3]));crown.position.set(x,3.5,z);crown.castShadow=true;scene.add(trunk,crown)}
-// Car group: stylized fictional FR coupe
-const car=new THREE.Group();scene.add(car);const bodyMat=mat(0xc64b32,.48),glassMat=new THREE.MeshStandardMaterial({color:0x17252d,metalness:.25,roughness:.25});const chassis=new THREE.Mesh(new THREE.BoxGeometry(1.9,.52,4.05),bodyMat);chassis.position.y=.82;chassis.castShadow=true;car.add(chassis);const hood=new THREE.Mesh(new THREE.BoxGeometry(1.82,.18,1.3),bodyMat);hood.position.set(0,1.08,-1.18);car.add(hood);const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.52,.66,1.8),glassMat);cabin.position.set(0,1.35,.05);cabin.castShadow=true;car.add(cabin);const roof=new THREE.Mesh(new THREE.BoxGeometry(1.5,.12,1.2),bodyMat);roof.position.set(0,1.72,.05);car.add(roof);
-const wheels=[];for(const x of [-.98,.98])for(const z of [-1.32,1.32]){const pivot=new THREE.Group();pivot.position.set(x,.43,z);car.add(pivot);const spin=new THREE.Group();pivot.add(spin);const tire=new THREE.Mesh(new THREE.CylinderGeometry(.39,.39,.24,16),mat(0x151719));tire.rotation.z=Math.PI/2;tire.castShadow=true;spin.add(tire);wheels.push({pivot,spin,x,z})}
-const lampMat=new THREE.MeshBasicMaterial({color:0xffefc2});for(const x of [-.62,.62]){const l=new THREE.Mesh(new THREE.BoxGeometry(.38,.13,.06),lampMat);l.position.set(x,.92,-2.04);car.add(l)}
-// Cockpit viewpoint marker
-const cockpit=new THREE.Object3D();cockpit.position.set(0,1.52,-.05);car.add(cockpit);
-// Physics state: planar vehicle dynamics with yaw inertia, tire slip, traction and load transfer approximation
-const spawnIndex=36,spawnT=spawnIndex/(roadPts.length-1),spawnPoint=roadPts[spawnIndex],spawnTangent=path.getTangent(spawnT).normalize();
-const state={x:spawnPoint.x,y:spawnPoint.y-.12,z:spawnPoint.z,vx:0,vz:0,yaw:Math.atan2(spawnTangent.x,spawnTangent.z),yawRate:0,steer:0,gear:1};
-car.position.set(state.x,state.y,state.z);car.rotation.y=state.yaw+Math.PI;
-const input={left:false,right:false,throttle:false,brake:false,hand:false,shiftUp:false,shiftDown:false};const keyMap={ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right',ArrowUp:'throttle',w:'throttle',ArrowDown:'brake',s:'brake',' ':'hand',e:'shiftUp',q:'shiftDown'};addEventListener('keydown',e=>{const k=keyMap[e.key];if(k){input[k]=true;e.preventDefault()}});addEventListener('keyup',e=>{const k=keyMap[e.key];if(k)input[k]=false});document.querySelectorAll('[data-control]').forEach(el=>{
-  const k=el.dataset.control;
-  const down=e=>{
-    e.preventDefault();
-    if(el.setPointerCapture) el.setPointerCapture(e.pointerId);
-    input[k]=true;
-    el.classList.add('active');
-  };
-  const up=e=>{
-    e.preventDefault();
-    input[k]=false;
-    el.classList.remove('active');
-  };
-  el.addEventListener('pointerdown',down);
-  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>el.addEventListener(ev,up));
-});
-let camMode=0,gear=1,rpm=950,shiftCooldown=0,prevShiftUp=false,prevShiftDown=false;const camBtn=document.getElementById('camBtn');camBtn.addEventListener('click',()=>{camMode=1-camMode;camBtn.textContent=camMode?'CAM: COCKPIT':'CAM: CHASE'});
-const speedEl=document.getElementById('speed'),gearEl=document.getElementById('gear'),hint=document.getElementById('hint'),rpmBar=document.getElementById('rpmBar'),rpmText=document.getElementById('rpmText');setTimeout(()=>hint.style.opacity=0,5500);
-const clock=new THREE.Clock();
-let smoothedSteer=0;
-function nearestRoadInfo(x,z){
-  let best=1e9,y=0;
-  for(let i=0;i<roadPts.length;i+=2){
-    const p=roadPts[i],d=(p.x-x)**2+(p.z-z)**2;
-    if(d<best){best=d;y=p.y}
-  }
-  return {y,distance:Math.sqrt(best)};
-}
-function updatePhysics(dt){
-  // Unified vehicle coordinates:
-  // forward = (sin(yaw), cos(yaw)); left = (-cos(yaw), sin(yaw)).
-  // Positive steer = left. Positive yawRate = right.
-  const clamp=THREE.MathUtils.clamp;
-  const c=Math.cos(state.yaw), sn=Math.sin(state.yaw);
-  let vf=state.vx*sn+state.vz*c;
-  let vl=-state.vx*c+state.vz*sn;
-
-  if(shiftCooldown>0) shiftCooldown-=dt;
-  if(input.shiftUp&&!prevShiftUp&&shiftCooldown<=0){gear=Math.min(6,gear+1);shiftCooldown=.24;}
-  if(input.shiftDown&&!prevShiftDown&&shiftCooldown<=0){gear=Math.max(1,gear-1);shiftCooldown=.24;}
-  prevShiftUp=input.shiftUp;prevShiftDown=input.shiftDown;
-
-  const ratios=[3.20,2.10,1.48,1.12,.90,.74];
-  const wheelRadius=.34, finalDrive=4.10;
-  const wheelRpm=Math.abs(vf)/(2*Math.PI*wheelRadius)*60;
-  const coupledRpm=wheelRpm*ratios[gear-1]*finalDrive;
-  const freeRpm=input.throttle?1050+Math.abs(vf)*250:950;
-  const targetRpm=clamp(Math.max(freeRpm,coupledRpm),950,7200);
-  rpm+=(targetRpm-rpm)*Math.min(1,dt*(input.throttle?5:8));
-
-  const throttle=input.throttle?1:0;
-  const brake=input.brake?1:0;
-  const steerTarget=(input.left?1:0)-(input.right?1:0);
-  state.steer+=(steerTarget-state.steer)*Math.min(1,dt*5.5);
-  // Positive angle is left; steering fades gently with speed.
-  const steerAngle=state.steer*0.48*clamp(1-Math.abs(vf)/110,.35,1);
-
-  const roadInfo=nearestRoadInfo(state.x,state.z);
-  const onRoad=roadInfo.distance<5.0;
-  const surfaceMu=onRoad?1.0:.48;
-  const mass=1180, wheelBase=2.64, lf=1.32, lr=1.32;
-  const gravity=9.81, iz=mass*1.55;
-
-  const gearTorque=[1,.72,.52,.40,.32,.27][gear-1];
-  const torqueShape=clamp(1-Math.pow((rpm-4300)/4300,2)*.48,.35,1);
-  const driveForce=throttle*mass*3.9*gearTorque*torqueShape;
-  const brakeForce=brake*mass*6.0;
-  const handActive=input.hand&&Math.abs(vf)>3.0;
-  const handBrakeForce=handActive?mass*1.8:0;
-  let fx=driveForce*Math.sign(vf||1)-Math.sign(vf||1)*(brakeForce+handBrakeForce);
-  fx-=vf*(24+Math.abs(vf)*.48);
-  if(rpm>6900)fx-=Math.sign(vf||1)*700;
-
-  // Longitudinal load transfer; keep each axle load positive.
-  const axEstimate=clamp(fx/mass,-6,4.5);
-  const staticFront=mass*gravity*lr/wheelBase;
-  const staticRear=mass*gravity*lf/wheelBase;
-  const frontNormal=Math.max(mass*gravity*.16,staticFront-mass*axEstimate*.42);
-  const rearNormal=Math.max(mass*gravity*.16,staticRear+mass*axEstimate*.42);
-  const frontMu=surfaceMu;
-  const rearMu=surfaceMu*(handActive?.38:1.0);
-
-  // At the front axle, positive yaw (right) moves the nose right,
-  // which is negative in our left-positive lateral coordinate.
-  const vxSafe=Math.max(2.0,Math.abs(vf));
-  const direction=Math.sign(vf||1);
-  const frontVy=vl-state.yawRate*lf;
-  const rearVy=vl+state.yawRate*lr;
-  const alphaFront=Math.atan2(frontVy,vxSafe)*direction-steerAngle;
-  const alphaRear=Math.atan2(rearVy,vxSafe)*direction;
-
-  // Tire cornering stiffness and friction-circle limits.
-  const corneringFront=frontNormal*5.2;
-  const corneringRear=rearNormal*5.5;
-  let fyFront=-corneringFront*alphaFront;
-  let fyRear=-corneringRear*alphaRear;
-  const frontLimit=frontMu*frontNormal*.92;
-  const rearLongUse=Math.abs(fx)*.48+(handActive?handBrakeForce*.35:0);
-  const rearLimit=rearMu*rearNormal*.92*
-    Math.sqrt(Math.max(.12,1-Math.pow(clamp(rearLongUse/(rearMu*rearNormal||1),0,.94),2)));
-  fyFront=clamp(fyFront,-frontLimit,frontLimit);
-  fyRear=clamp(fyRear,-rearLimit,rearLimit);
-
-  const lateralForce=fyFront+fyRear;
-  // Positive yaw is right: front-left force turns left (negative yaw).
-  const yawMoment=-lf*fyFront+lr*fyRear;
-  const yawDamping=handActive?1.8:2.8;
-  const yawAccel=yawMoment/iz-state.yawRate*yawDamping;
-  state.yawRate=clamp(state.yawRate+yawAccel*dt,-1.65,1.65);
-
-  // Rotating-body correction for forward/left-positive coordinates.
-  const longitudinalAccel=fx/mass-state.yawRate*vl;
-  const lateralAccel=lateralForce/mass+state.yawRate*vf;
-  vf+=longitudinalAccel*dt;
-  vl+=lateralAccel*dt;
-
-  // Mild lateral damping at parking speed prevents numerical drift.
-  if(Math.abs(vf)<1.2&&!throttle) vl*=Math.max(0,1-dt*2.0);
-  if(!throttle&&!brake&&Math.abs(vf)<.7) vf*=Math.max(0,1-dt*2.5);
-
-  state.yaw+=state.yawRate*dt;
-  const cc=Math.cos(state.yaw), ss=Math.sin(state.yaw);
-  state.vx=vf*ss-vl*cc;
-  state.vz=vf*cc+vl*ss;
-  state.x+=state.vx*dt;
-  state.z+=state.vz*dt;
-  state.y+=(roadInfo.y-.12-state.y)*Math.min(1,dt*8);
-
-  car.position.set(state.x,state.y,state.z);
-  const pitch=clamp(-longitudinalAccel*.014,-.10,.10);
-  const roll=clamp(-lateralAccel*.010,-.10,.10);
-  car.rotation.set(pitch,state.yaw+Math.PI,roll);
-
-  document.getElementById('surface').textContent=onRoad?'ASPHALT':'GRAVEL · LOW GRIP';
-  document.getElementById('surface').style.color=onRoad?'#b9d9c3':'#ffb27c';
-  for(const w of wheels){
-    w.spin.rotation.x+=vf*dt/wheelRadius;
-    w.pivot.rotation.y=(w.z<0)?steerAngle:0;
-  }
-
-  const kmh=Math.round(Math.abs(vf)*3.6);
-  speedEl.textContent=String(kmh).padStart(3,'0');
-  gearEl.textContent=String(gear);
-  rpmText.textContent=Math.round(rpm).toLocaleString('en-US')+' RPM';
-  rpmBar.style.width=(rpm/7200*100)+'%';
-  rpmBar.style.background=rpm>6200?'#ef795e':rpm>5000?'#e6c46a':'#73d6a0';
-  const slipAngle=Math.atan2(Math.abs(vl),Math.max(1,Math.abs(vf)))*180/Math.PI;
-  const driftLabel=Math.abs(alphaRear)>Math.abs(alphaFront)+.08?'OVERSTEER':(Math.abs(alphaFront)>Math.abs(alphaRear)+.08?'UNDERSTEER':'GRIP');
-  document.getElementById('telemetry').innerHTML=`車両：TS-86R<br>駆動：FR / 6MT<br>回転数：${Math.round(rpm)} RPM<br>横すべり：${Math.round(slipAngle)}°<br>${driftLabel}${handActive?' · HANDBRAKE':''}`;
-}
-function updateCamera(dt){if(camMode===0){const back=new THREE.Vector3(Math.sin(state.yaw)*9,4.1,Math.cos(state.yaw)*9);const target=new THREE.Vector3(state.x-back.x,state.y+back.y,state.z-back.z);camera.position.lerp(target,1-Math.exp(-4*dt));camera.lookAt(state.x,state.y+1,state.z)}else{const p=cockpit.getWorldPosition(new THREE.Vector3());const dir=new THREE.Vector3(Math.sin(state.yaw),0,Math.cos(state.yaw));camera.position.copy(p);camera.lookAt(p.clone().add(dir.multiplyScalar(15)).add(new THREE.Vector3(0,-.3,0)))} }
-function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.04);updatePhysics(dt);updateCamera(dt);renderer.render(scene,camera)}loop();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5))});
-</script></body></html>
+</script>
+</body>
+</html>
