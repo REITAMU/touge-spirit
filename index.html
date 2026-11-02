@@ -4,24 +4,102 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#101820"><title>峠魂 - TOUGE SPIRIT - Prototype</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101820;color:#fff;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;touch-action:none}canvas{display:block;width:100%;height:100%;}#hud{position:fixed;inset:0;pointer-events:none}.top{position:absolute;top:env(safe-area-inset-top,10px);left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start}.brand{font-weight:900;letter-spacing:.12em;text-shadow:0 2px 8px #000}.sub{font-size:10px;color:#b9c8d0;letter-spacing:.18em}.panel{background:#071018b8;border:1px solid #ffffff24;border-radius:12px;padding:9px 12px;backdrop-filter:blur(8px)}#speed{font-size:30px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}#unit{font-size:10px;color:#b8c5cc}#rpmWrap{width:92px;height:5px;background:#ffffff35;border-radius:9px;margin-top:7px;overflow:hidden}#rpmBar{height:100%;width:8%;background:#73d6a0}#rpmText{font-size:9px;color:#c9d7dc;text-align:right;margin-top:3px;font-variant-numeric:tabular-nums}#gear{font-size:18px;font-weight:800;margin-left:8px}#telemetry{position:absolute;left:12px;top:76px;font-size:11px;line-height:1.7;color:#d7e1e6}#camBtn{touch-action:manipulation;pointer-events:auto;border:1px solid #ffffff50;background:#071018cc;color:white;border-radius:10px;padding:9px 12px;font-weight:700}#hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#071018a8;padding:8px 12px;border-radius:9px;font-size:12px;color:#e5edf1;white-space:nowrap;opacity:1;transition:opacity 1s}#controls{position:absolute;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom,0px));height:190px;display:flex;justify-content:space-between;align-items:end;padding:0 16px;pointer-events:none}.cluster{display:flex;gap:10px;align-items:end;pointer-events:auto}.ctrl{width:66px;height:66px;border-radius:18px;border:1px solid #ffffff55;background:#071018a8;color:#fff;font-weight:800;font-size:13px;display:grid;place-items:center;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 5px 16px #0005}.ctrl.big{width:78px;height:78px}.ctrl.active{background:#d95b28cc;border-color:#ffb18e}.steer{font-size:24px}.stack{display:flex;flex-direction:column;gap:5px}.small{height:43px;width:66px;font-size:10px}#footer{position:absolute;bottom:calc(166px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font-size:10px;color:#d4dce0;text-shadow:0 1px 4px #000;white-space:nowrap}#damage{position:absolute;right:12px;top:78px;font-size:10px;color:#ffd6a6;text-align:right}@media(orientation:portrait){
-#controls{height:170px;padding:0 10px;bottom:calc(8px + env(safe-area-inset-bottom,0px))}
-.ctrl{width:58px;height:58px;border-radius:16px}
-.ctrl.big{width:70px;height:70px}
-.ctrl.small{width:56px;height:44px}
-#footer{bottom:calc(180px + env(safe-area-inset-bottom,0px));font-size:9px}
-#telemetry{top:70px;font-size:10px;padding:7px 9px}
-#speed{font-size:25px}
-#camBtn{padding:8px 9px;font-size:11px}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101820;color:#fff;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+#hud{position:fixed;inset:0;pointer-events:none}
+.top{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:clamp(12px,2.2vw,30px);right:clamp(12px,2.2vw,30px);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.brandBlock{min-width:0;text-shadow:0 2px 8px #000}
+.brand{font-size:clamp(17px,2.1vw,25px);font-weight:900;letter-spacing:.12em;white-space:nowrap}
+.sub{font-size:clamp(8px,1vw,11px);color:#b9c8d0;letter-spacing:.16em;white-space:nowrap}
+.dashGroup{display:flex;align-items:flex-start;gap:9px}
+.panel{background:#071018d9;border:1px solid #ffffff35;border-radius:15px;padding:9px 13px;backdrop-filter:blur(10px);box-shadow:0 5px 18px #0004}
+.dash{min-width:174px}
+.speedLine{display:flex;align-items:baseline;gap:7px;white-space:nowrap}
+#speed{font-size:clamp(27px,4vw,42px);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+#unit{font-size:10px;color:#b8c5cc}
+.gearLabel{font-size:8px;letter-spacing:.12em;color:#9eafb8;margin-left:5px}
+#gear{font-size:20px;font-weight:900;min-width:15px;text-align:center}
+#rpmWrap{width:100%;height:5px;background:#ffffff35;border-radius:9px;margin-top:7px;overflow:hidden}
+#rpmBar{height:100%;width:8%;background:#73d6a0;transition:width .08s linear}
+#rpmText{font-size:9px;color:#c9d7dc;text-align:right;margin-top:3px;font-variant-numeric:tabular-nums}
+#camBtn{pointer-events:auto;touch-action:manipulation;border:1px solid #ffffff50;background:#071018df;color:white;border-radius:13px;padding:12px 14px;min-height:48px;font-size:11px;font-weight:800;white-space:nowrap}
+#telemetry{position:absolute;left:clamp(12px,2.2vw,30px);top:calc(env(safe-area-inset-top,0px) + 76px);font-size:11px;line-height:1.65;color:#d7e1e6;min-width:142px}
+#damage{position:absolute;right:clamp(12px,2.2vw,30px);top:calc(env(safe-area-inset-top,0px) + 78px);font-size:10px;color:#ffd6a6;text-align:right;text-shadow:0 1px 4px #000}
+#surface{color:#b9d9c3}
+#hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#071018b8;padding:8px 12px;border-radius:9px;font-size:12px;color:#e5edf1;white-space:nowrap;opacity:1;transition:opacity 1s;text-align:center;max-width:85vw}
+#footer{position:absolute;bottom:calc(108px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font-size:10px;color:#d4dce0;text-shadow:0 1px 4px #000;white-space:nowrap;text-align:center}
+#controls{position:absolute;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:flex-end;padding:0 clamp(12px,2.2vw,30px);pointer-events:none;gap:10px}
+.cluster{display:flex;gap:9px;align-items:flex-end;pointer-events:auto}
+.ctrl{width:clamp(54px,6vw,72px);height:clamp(54px,6vw,72px);border-radius:17px;border:1px solid #ffffff65;background:#071018c9;color:#fff;font-weight:850;font-size:12px;display:grid;place-items:center;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 5px 16px #0006;backdrop-filter:blur(7px)}
+.ctrl.big{width:clamp(68px,7.2vw,88px);height:clamp(82px,9vw,104px);font-size:14px}
+.ctrl.active{background:#d95b28e8;border-color:#ffb18e;transform:scale(.97)}
+.steer{font-size:25px}
+.shiftPair,.pedalPair{display:flex;flex-direction:column;gap:7px}
+.small{width:clamp(62px,6vw,76px);height:clamp(39px,4.5vw,48px);font-size:9px;border-radius:13px}
+#controls .drivingCluster{gap:8px}
+@media(orientation:portrait){
+ .top{gap:5px}
+ .brand{font-size:15px}
+ .sub{font-size:7px;letter-spacing:.1em}
+ .dash{min-width:126px;padding:7px 9px}
+ #speed{font-size:25px}
+ #gear{font-size:17px}
+ #camBtn{min-height:40px;padding:8px;font-size:9px}
+ #telemetry{top:calc(env(safe-area-inset-top,0px) + 62px);font-size:9px;padding:6px 8px;min-width:120px}
+ #damage{top:calc(env(safe-area-inset-top,0px) + 68px);font-size:8px}
+ #controls{padding:0 9px;gap:5px}
+ .cluster{gap:5px}
+ .ctrl{width:49px;height:52px;border-radius:13px;font-size:10px}
+ .ctrl.big{width:60px;height:76px;font-size:11px}
+ .steer{font-size:20px}
+ .small{width:51px;height:38px;font-size:8px}
+ #controls .drivingCluster{gap:5px}
+ #footer{bottom:calc(94px + env(safe-area-inset-bottom,0px));font-size:8px;max-width:90vw;white-space:normal}
+ #hint{font-size:10px}
 }
-@media(min-width:800px){#controls{max-width:900px;left:50%;transform:translateX(-50%)}.ctrl{width:76px;height:76px}}
+@media(max-height:430px) and (orientation:landscape){
+ .top{top:6px}
+ #telemetry{top:66px}
+ #damage{top:68px}
+ #controls{bottom:6px}
+ .ctrl{height:48px;width:52px}
+ .ctrl.big{height:66px;width:70px}
+ .small{height:34px;width:62px}
+ #footer{display:none}
+}
+@media(min-width:1000px){
+ #controls{max-width:1300px;left:50%;right:auto;width:100%;transform:translateX(-50%)}
+}
 </style></head>
 <body><div id="hud">
-<div class="top"><div><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.3</div></div><div style="display:flex;gap:8px;align-items:start"><div class="panel"><span id="speed">000</span> <span id="unit">KM/H</span><span id="gear">1</span><div id="rpmWrap"><div id="rpmBar"></div></div><div id="rpmText">950 RPM</div></div><button id="camBtn">CAM: CHASE</button></div></div>
-<div id="telemetry" class="panel">車両：TS-86R<br>駆動：FR / 6MT<br>路面：DRY ASPHALT<br>グリップ：100%</div><div id="damage">TEST COURSE · HAKONE RIDGE<br><span id="surface">ASPHALT</span></div>
+<div class="top">
+<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.4</div></div>
+<div class="dashGroup">
+  <div class="panel dash"><div class="speedLine"><span id="speed">000</span><span id="unit">KM/H</span><span class="gearLabel">GEAR</span><span id="gear">1</span></div><div id="rpmWrap"><div id="rpmBar"></div></div><div id="rpmText">950 RPM</div></div>
+  <button id="camBtn">CAM: CHASE</button>
+</div>
+</div>
+<div id="telemetry" class="panel">車両：TS-86R<br>FR · 6MT<br>DRY ASPHALT</div><div id="damage">TEST COURSE · HAKONE RIDGE<br><span id="surface">ASPHALT</span></div>
 <div id="hint">横画面推奨 · Q/E または SHIFT −/+ で変速</div>
 <div id="footer">アクセルを踏み、ブレーキで荷重を移し、ステアリングで曲がろう。</div>
-<div id="controls"><div class="cluster"><div class="ctrl steer" data-control="left">◀</div><div class="ctrl steer" data-control="right">▶</div></div><div class="cluster"><div class="stack"><div class="ctrl small" data-control="shiftUp">SHIFT +</div><div class="ctrl small" data-control="shiftDown">SHIFT −</div><div class="ctrl small" data-control="hand">HANDBRAKE</div><div class="ctrl small" data-control="brake">BRAKE</div></div><div class="ctrl big" data-control="throttle">ACCEL</div></div></div>
+<div id="controls">
+  <div class="cluster steeringCluster">
+    <div class="ctrl steer" data-control="left">◀</div>
+    <div class="ctrl steer" data-control="right">▶</div>
+  </div>
+  <div class="cluster drivingCluster">
+    <div class="shiftPair">
+      <div class="ctrl small" data-control="shiftUp">SHIFT +</div>
+      <div class="ctrl small" data-control="shiftDown">SHIFT −</div>
+    </div>
+    <div class="pedalPair">
+      <div class="ctrl small" data-control="hand">HANDBRAKE</div>
+      <div class="ctrl small" data-control="brake">BRAKE</div>
+    </div>
+    <div class="ctrl big" data-control="throttle">ACCEL</div>
+  </div>
+</div>
 </div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
