@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#101820"><title>峠魂 - TOUGE SPIRIT - Prototype</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101820;color:#fff;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;touch-action:none}
-canvas{display:block;width:100%;height:100%}
-#hud{position:fixed;inset:0;pointer-events:none}
+html,body{margin:0;width:100%;height:100%;min-width:0;max-width:100%;overflow:hidden;overscroll-behavior:none;background:#101820;color:#fff;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;touch-action:none}
+canvas{display:block;position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:100%;}
+#hud{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:100%;overflow:hidden;pointer-events:none;touch-action:none}
 .top{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:clamp(12px,2.2vw,30px);right:clamp(12px,2.2vw,30px);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .brandBlock{min-width:0;text-shadow:0 2px 8px #000}
 .brand{font-size:clamp(17px,2.1vw,25px);font-weight:900;letter-spacing:.12em;white-space:nowrap}
@@ -30,14 +30,14 @@ canvas{display:block;width:100%;height:100%}
 #hint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#071018b8;padding:8px 12px;border-radius:9px;font-size:12px;color:#e5edf1;white-space:nowrap;opacity:1;transition:opacity 1s;text-align:center;max-width:85vw}
 #footer{position:absolute;bottom:calc(108px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font-size:10px;color:#d4dce0;text-shadow:0 1px 4px #000;white-space:nowrap;text-align:center}
 #controls{position:absolute;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:flex-end;padding:0 clamp(12px,2.2vw,30px);pointer-events:none;gap:10px}
-.cluster{display:flex;gap:9px;align-items:flex-end;pointer-events:auto}
+.cluster{display:flex;gap:8px;align-items:flex-end;pointer-events:auto;min-width:0}
 .ctrl{width:clamp(54px,6vw,72px);height:clamp(54px,6vw,72px);border-radius:17px;border:1px solid #ffffff65;background:#071018c9;color:#fff;font-weight:850;font-size:12px;display:grid;place-items:center;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 5px 16px #0006;backdrop-filter:blur(7px)}
 .ctrl.big{width:clamp(68px,7.2vw,88px);height:clamp(82px,9vw,104px);font-size:14px}
 .ctrl.active{background:#d95b28e8;border-color:#ffb18e;transform:scale(.97)}
 .steer{font-size:25px}
 .shiftPair,.pedalPair{display:flex;flex-direction:column;gap:7px}
 .small{width:clamp(62px,6vw,76px);height:clamp(39px,4.5vw,48px);font-size:9px;border-radius:13px}
-#controls .drivingCluster{gap:8px}
+#controls .drivingCluster{gap:7px;min-width:0;flex-shrink:0}
 @media(orientation:portrait){
  .top{gap:5px}
  .brand{font-size:15px}
@@ -58,6 +58,14 @@ canvas{display:block;width:100%;height:100%}
  #footer{bottom:calc(94px + env(safe-area-inset-bottom,0px));font-size:8px;max-width:90vw;white-space:normal}
  #hint{font-size:10px}
 }
+@media(max-width:900px) and (orientation:landscape){
+ #controls{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right));gap:4px}
+ .steeringCluster{gap:5px}
+ #controls .drivingCluster{gap:5px}
+ .ctrl{width:clamp(44px,5.2vw,58px);height:clamp(46px,6.5vw,58px)}
+ .ctrl.big{width:clamp(54px,6vw,68px);height:clamp(62px,8vw,78px)}
+ .small{width:clamp(48px,5.2vw,60px);height:clamp(32px,4.2vw,40px);font-size:8px}
+}
 @media(max-height:430px) and (orientation:landscape){
  .top{top:6px}
  #telemetry{top:66px}
@@ -71,10 +79,11 @@ canvas{display:block;width:100%;height:100%}
 @media(min-width:1000px){
  #controls{max-width:1300px;left:50%;right:auto;width:100%;transform:translateX(-50%)}
 }
+body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden}#hud *{max-width:100%}
 </style></head>
 <body><div id="hud">
 <div class="top">
-<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.4</div></div>
+<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.4.1</div></div>
 <div class="dashGroup">
   <div class="panel dash"><div class="speedLine"><span id="speed">000</span><span id="unit">KM/H</span><span class="gearLabel">GEAR</span><span id="gear">1</span></div><div id="rpmWrap"><div id="rpmBar"></div></div><div id="rpmText">950 RPM</div></div>
   <button id="camBtn">CAM: CHASE</button>
@@ -102,6 +111,26 @@ canvas{display:block;width:100%;height:100%}
 </div>
 </div>
 <script type="module">
+
+// iOS Safari: prevent page pinch/double-tap zoom from hijacking steering.
+(function lockGameViewport(){
+  const stopZoom = e => { if(e.cancelable) e.preventDefault(); };
+  ['gesturestart','gesturechange','gestureend'].forEach(type =>
+    document.addEventListener(type, stopZoom, {passive:false})
+  );
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if(now-lastTouchEnd < 320) stopZoom(e);
+    lastTouchEnd = now;
+  }, {passive:false});
+  document.addEventListener('touchmove', e => {
+    if(e.touches && e.touches.length > 1) stopZoom(e);
+  }, {passive:false});
+  document.addEventListener('dblclick', stopZoom, {passive:false});
+  document.addEventListener('contextmenu', e => e.preventDefault());
+})();
+
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x91a9b1);scene.fog=new THREE.FogExp2(0x91a9b1,.009);
 const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,900);camera.position.set(0,5,10);
