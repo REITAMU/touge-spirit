@@ -3,153 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>FC Touge Racing - Prototype 0.2</title>
+<title>FC Touge Racing - Prototype 0.3</title>
 <style>
-  * { box-sizing: border-box; }
-  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#111; display:flex; justify-content:center; align-items:center; touch-action:none; }
-  canvas { width:min(100vw, 106.67vh); height:min(93.75vh, 100vw * .9375); max-width:100vw; max-height:100vh; image-rendering:pixelated; border:4px solid #fff; box-shadow:0 0 20px rgba(255,255,255,.2); }
-  #touch { position:fixed; bottom:max(14px,env(safe-area-inset-bottom)); left:0; right:0; display:flex; justify-content:space-between; padding:0 18px; pointer-events:none; }
-  .pad { display:flex; gap:12px; pointer-events:auto; }
-  button { width:64px; height:58px; border:2px solid #fff; border-radius:8px; color:#fff; background:#222d; font:bold 22px monospace; touch-action:none; }
-  button:active, button.active { background:#a33; }
-  @media (hover:hover) and (pointer:fine) { #touch { display:none; } }
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;display:flex;justify-content:center;align-items:center;font-family:monospace;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{width:min(100vw,106.67vh);height:min(93.75vh,100vw*.9375);max-width:100vw;max-height:100vh;image-rendering:pixelated;border:4px solid #fff;box-shadow:0 0 20px rgba(255,255,255,.2)}
+#touch{position:fixed;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;padding:0 18px;pointer-events:none}
+.pad{display:flex;gap:12px;pointer-events:auto}
+button{width:62px;height:56px;border:2px solid #fff;border-radius:8px;color:#fff;background:#222d;font:bold 20px monospace;touch-action:none;padding:0}
+button.active{background:#a33}
+#gear{font-size:16px;background:#254c25}
 </style>
 </head>
 <body>
 <canvas id="gameCanvas" width="256" height="240"></canvas>
 <div id="touch">
   <div class="pad"><button id="left">◀</button><button id="right">▶</button></div>
-  <div class="pad"><button id="accelerate">HI</button></div>
+  <div class="pad"><button id="gear">HI</button></div>
 </div>
 <script>
-(() => {
-  const canvas = document.getElementById("gameCanvas");
-  const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingEnabled = false;
+(()=>{
+const canvas=document.getElementById("gameCanvas");
+const ctx=canvas.getContext("2d");
+ctx.imageSmoothingEnabled=false;
 
-  let scrollY = 0, speed = 2, score = 0, gameOver = false, frame = 0;
-  const courseWidth = 100;
-  const player = { x:120, y:180, width:12, height:18, steerSpeed:3 };
-  const enemies = [];
-  const keys = {};
-  const touch = { left:false, right:false, accelerate:false };
+let scrollY=0,speed=2,score=0,gameOver=false;
+const player={x:120,y:180,width:12,height:18,steerSpeed:3};
+const courseWidth=100;
+const keys={};
+const touch={left:false,right:false,high:false};
+const enemies=[
+ {y:-50,speedOffset:1.0,color:"#0088ff",width:12,height:18,x:0},
+ {y:-150,speedOffset:1.5,color:"#ffcc00",width:12,height:18,x:0},
+ {y:-250,speedOffset:.8,color:"#ff00ff",width:12,height:18,x:0}
+];
 
-  addEventListener("keydown", e => {
-    keys[e.key.toLowerCase()] = true;
-    if (["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key)) e.preventDefault();
-  }, {passive:false});
-  addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+addEventListener("keydown",e=>{
+ keys[e.key.toLowerCase()]=true;
+ if(["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key))e.preventDefault();
+},{passive:false});
+addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
 
-  function bindButton(id, key) {
-    const el = document.getElementById(id);
-    const down = e => { e.preventDefault(); touch[key] = true; el.classList.add("active"); };
-    const up = e => { e.preventDefault(); touch[key] = false; el.classList.remove("active"); };
-    el.addEventListener("pointerdown", down);
-    ["pointerup","pointercancel","pointerleave","lostpointercapture"].forEach(type => el.addEventListener(type, up));
-  }
-  bindButton("left","left"); bindButton("right","right"); bindButton("accelerate","accelerate");
+function bindButton(id,key){
+ const el=document.getElementById(id);
+ const down=e=>{e.preventDefault();touch[key]=true;el.classList.add("active");};
+ const up=e=>{e.preventDefault();touch[key]=false;el.classList.remove("active");};
+ el.addEventListener("pointerdown",down);
+ ["pointerup","pointercancel","pointerleave","lostpointercapture"].forEach(t=>el.addEventListener(t,up));
+}
+bindButton("left","left");bindButton("right","right");bindButton("gear","high");
 
-  const pressed = key => !!keys[key];
-  const leftHeld = () => pressed("arrowleft") || pressed("a") || touch.left;
-  const rightHeld = () => pressed("arrowright") || pressed("d") || touch.right;
-  const highGear = () => pressed("arrowup") || pressed("w") || touch.accelerate;
+const leftHeld=()=>keys.arrowleft||keys.a||touch.left;
+const rightHeld=()=>keys.arrowright||keys.d||touch.right;
+const highHeld=()=>keys.arrowup||keys.w||touch.high;
 
-  // 複数の波を重ねて、ゆるい区間と急カーブを作る
-  function getCourseCenterX(y) {
-    const p = y - scrollY;
-    return 128
-      + Math.sin(p * 0.010) * 27
-      + Math.sin(p * 0.021 + 1.4) * 17
-      + Math.sin(p * 0.0042 + 0.7) * 19;
-  }
+function getCourseCenterX(y){
+ return 128
+  +Math.sin((y-scrollY)*.010)*40
+  +Math.sin((y-scrollY)*.017+1.2)*13;
+}
 
-  function spawnEnemy() {
-    const y = -22;
-    const center = getCourseCenterX(y);
-    const laneOffset = Math.random() < 0.5 ? -25 : 25;
-    const x = center + laneOffset - 6;
-    enemies.push({ x, y, width:12, height:18, speed:0.8, color:Math.random()<0.5?"#2876ee":"#f0d33b" });
-  }
+function resetEnemy(enemy){
+ enemy.y=-40-Math.random()*100;
+ const center=getCourseCenterX(enemy.y);
+ const roadLeft=center-courseWidth/2+5;
+ const roadRight=center+courseWidth/2-enemy.width-5;
+ enemy.x=roadLeft+Math.random()*(roadRight-roadLeft);
+ enemy.speedOffset=.5+Math.random()*1.2;
+}
+enemies.forEach(resetEnemy);
 
-  function resetGame() {
-    scrollY=0; speed=2; score=0; gameOver=false; frame=0;
-    player.x=120; enemies.length=0;
-  }
+function resetGame(){
+ scrollY=0;speed=2;score=0;player.x=120;gameOver=false;
+ enemies.forEach(resetEnemy);
+}
 
-  function update() {
-    if (gameOver) { if (pressed(" ") || pressed("enter")) resetGame(); return; }
-    speed = highGear() ? 4 : 2;
-    scrollY += speed;
-    frame++;
-    score += speed === 4 ? 2 : 1;
+function update(){
+ if(gameOver){
+  if(keys[" "]||keys.enter)resetGame();
+  return;
+ }
+ // HIは速度4、LOWは速度2
+ speed=highHeld()?4:2;
+ scrollY+=speed;
+ score+=1;
 
-    if (leftHeld()) player.x -= player.steerSpeed;
-    if (rightHeld()) player.x += player.steerSpeed;
+ if(leftHeld())player.x-=player.steerSpeed;
+ if(rightHeld())player.x+=player.steerSpeed;
 
-    // 敵車は画面上から出現し、自車より遅い相対速度で下へ流れる
-    if (frame % 78 === 0 && enemies.length < 4) spawnEnemy();
-    for (let i=enemies.length-1; i>=0; i--) {
-      const enemy=enemies[i];
-      enemy.y += speed - enemy.speed;
-      if (enemy.y > canvas.height + 24) enemies.splice(i,1);
-    }
+ const pCenter=getCourseCenterX(player.y+player.height/2);
+ if(player.x<pCenter-courseWidth/2||(player.x+player.width)>pCenter+courseWidth/2)gameOver=true;
 
-    const center=getCourseCenterX(player.y + player.height/2);
-    const left=center-courseWidth/2, right=center+courseWidth/2;
-    if (player.x < left || player.x+player.width > right) gameOver=true;
+ enemies.forEach(enemy=>{
+  // 自車より遅い敵車は、相対速度で画面下へ流れる
+  enemy.y+=speed-enemy.speedOffset;
+  const eCenter=getCourseCenterX(enemy.y+enemy.height/2);
+  const roadLeft=eCenter-courseWidth/2;
+  const roadRight=eCenter+courseWidth/2;
+  if(enemy.x<roadLeft+4)enemy.x=roadLeft+4;
+  if(enemy.x+enemy.width>roadRight-4)enemy.x=roadRight-4;
+  if(enemy.y>canvas.height)resetEnemy(enemy);
 
-    for (const enemy of enemies) {
-      const hit = player.x < enemy.x+enemy.width-2 &&
-        player.x+player.width > enemy.x+2 &&
-        player.y < enemy.y+enemy.height-2 &&
-        player.y+player.height > enemy.y+2;
-      if (hit) gameOver=true;
-    }
-  }
+  if(player.x<enemy.x+enemy.width&&
+     player.x+player.width>enemy.x&&
+     player.y<enemy.y+enemy.height&&
+     player.y+player.height>enemy.y)gameOver=true;
+ });
+}
 
-  function drawCar(x,y,color,isPlayer=false) {
-    ctx.fillStyle=color; ctx.fillRect(x,y,12,18);
-    ctx.fillStyle="#111";
-    ctx.fillRect(x-2,y+2,2,4); ctx.fillRect(x+12,y+2,2,4);
-    ctx.fillRect(x-2,y+12,2,4); ctx.fillRect(x+12,y+12,2,4);
-    ctx.fillStyle=isPlayer?"#9be7ff":"#c9d8e8";
-    ctx.fillRect(x+3,y+4,6,5);
-    ctx.fillStyle="#fff2c4";
-    if(isPlayer){ctx.fillRect(x+2,y,3,2);ctx.fillRect(x+7,y,3,2);}
-    else {ctx.fillRect(x+2,y+16,3,2);ctx.fillRect(x+7,y+16,3,2);}
-  }
+function drawCar(x,y,color,isPlayer=false){
+ ctx.fillStyle=color;ctx.fillRect(x,y,12,18);
+ ctx.fillStyle="#111";
+ ctx.fillRect(x-2,y+2,2,4);ctx.fillRect(x+12,y+2,2,4);
+ ctx.fillRect(x-2,y+12,2,4);ctx.fillRect(x+12,y+12,2,4);
+ ctx.fillStyle=isPlayer?"#9bdcf0":"#b8d5e8";
+ ctx.fillRect(x+3,y+4,6,5);
+ if(isPlayer){ctx.fillStyle="#fff2c4";ctx.fillRect(x+2,y,3,2);ctx.fillRect(x+7,y,3,2);}
+}
 
-  function draw() {
-    ctx.fillStyle="#008800"; ctx.fillRect(0,0,256,240);
-    for(let y=0;y<240;y++) {
-      const center=getCourseCenterX(y), left=center-courseWidth/2;
-      ctx.fillStyle="#444"; ctx.fillRect(left,y,courseWidth,1);
-      const red=Math.floor((y-scrollY)/16)%2===0;
-      ctx.fillStyle=red?"#ff0000":"#fff";
-      ctx.fillRect(left-2,y,3,1); ctx.fillRect(left+courseWidth-1,y,3,1);
-      // 路肩の点線で速度感を出す
-      if(Math.floor((y-scrollY)/12)%2===0) {
-        ctx.fillStyle="#b8b8b8";
-        ctx.fillRect(center-1,y,2,1);
-      }
-    }
+function draw(){
+ ctx.fillStyle="#008800";ctx.fillRect(0,0,256,240);
+ for(let y=0;y<240;y++){
+  const center=getCourseCenterX(y),left=center-courseWidth/2;
+  ctx.fillStyle="#444";ctx.fillRect(left,y,courseWidth,1);
+  const red=Math.floor((y-scrollY)/16)%2===0;
+  ctx.fillStyle=red?"#f00":"#fff";
+  ctx.fillRect(left-2,y,2,1);ctx.fillRect(left+courseWidth,y,2,1);
+ }
+ enemies.forEach(e=>drawCar(Math.round(e.x),Math.round(e.y),e.color,false));
+ drawCar(Math.round(player.x),player.y,"#ff2222",true);
 
-    for(const enemy of enemies) drawCar(Math.round(enemy.x),Math.round(enemy.y),enemy.color,false);
-    drawCar(Math.round(player.x),player.y,"#ff2222",true);
-
-    ctx.fillStyle="#fff"; ctx.font="12px monospace";
-    ctx.fillText(`SCORE:${String(score).padStart(6,"0")}`,10,15);
-    ctx.fillText(speed===4?"HI":"LOW",210,15);
-    if(gameOver) {
-      ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(0,0,256,240);
-      ctx.fillStyle="#ff3333";ctx.font="bold 16px monospace";ctx.fillText("CRASH!!",91,108);
-      ctx.fillStyle="#fff";ctx.font="9px monospace";ctx.fillText("PRESS SPACE / ENTER",65,128);
-      ctx.fillText("TO RESTART",91,140);
-    }
-  }
-
-  function loop(){update();draw();requestAnimationFrame(loop);}
-  loop();
+ ctx.fillStyle="#fff";ctx.font="12px monospace";
+ ctx.fillText(`SCORE:${String(score).padStart(6,"0")}`,8,15);
+ ctx.fillText(speed===4?"HI":"LOW",216,15);
+ if(gameOver){
+  ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(0,0,256,240);
+  ctx.fillStyle="#f00";ctx.font="bold 16px monospace";ctx.fillText("CRASH!!",91,108);
+  ctx.fillStyle="#fff";ctx.font="9px monospace";ctx.fillText("PRESS SPACE / ENTER",65,128);
+  ctx.fillText("TO RESTART",91,140);
+ }
+}
+function loop(){update();draw();requestAnimationFrame(loop);}
+loop();
 })();
 </script>
 </body>
