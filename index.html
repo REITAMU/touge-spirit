@@ -6,8 +6,8 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;min-width:0;max-width:100%;overflow:hidden;overscroll-behavior:none;background:#101820;color:#fff;font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;touch-action:none}
-canvas{display:block;position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:100%;}
-#hud{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:100%;overflow:hidden;pointer-events:none;touch-action:none}
+canvas{display:block;position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:100%;z-index:0;pointer-events:none;}
+#hud{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;max-width:100%;overflow:hidden;pointer-events:none;touch-action:none;z-index:10}
 .top{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:clamp(12px,2.2vw,30px);right:clamp(12px,2.2vw,30px);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .brandBlock{min-width:0;text-shadow:0 2px 8px #000}
 .brand{font-size:clamp(17px,2.1vw,25px);font-weight:900;letter-spacing:.12em;white-space:nowrap}
@@ -23,7 +23,7 @@ canvas{display:block;position:fixed;inset:0;width:100vw;height:100vh;height:100d
 #rpmWrap{width:100%;height:5px;background:#ffffff35;border-radius:9px;margin-top:7px;overflow:hidden}
 #rpmBar{height:100%;width:8%;background:#73d6a0;transition:width .08s linear}
 #rpmText{font-size:9px;color:#c9d7dc;text-align:right;margin-top:3px;font-variant-numeric:tabular-nums}
-#camBtn{pointer-events:auto;touch-action:manipulation;border:1px solid #ffffff50;background:#071018df;color:white;border-radius:13px;padding:12px 14px;min-height:48px;font-size:11px;font-weight:800;white-space:nowrap}
+#camBtn{position:relative;z-index:12;pointer-events:auto;touch-action:manipulation;border:1px solid #ffffff50;background:#071018df;color:white;border-radius:13px;padding:12px 14px;min-height:48px;font-size:11px;font-weight:800;white-space:nowrap}
 #telemetry{position:absolute;left:clamp(12px,2.2vw,30px);top:calc(env(safe-area-inset-top,0px) + 76px);font-size:11px;line-height:1.65;color:#d7e1e6;min-width:142px}
 #damage{position:absolute;right:clamp(12px,2.2vw,30px);top:calc(env(safe-area-inset-top,0px) + 78px);font-size:10px;color:#ffd6a6;text-align:right;text-shadow:0 1px 4px #000}
 #surface{color:#b9d9c3}
@@ -31,7 +31,7 @@ canvas{display:block;position:fixed;inset:0;width:100vw;height:100vh;height:100d
 #footer{position:absolute;bottom:calc(108px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font-size:10px;color:#d4dce0;text-shadow:0 1px 4px #000;white-space:nowrap;text-align:center}
 #controls{position:absolute;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:flex-end;padding:0 clamp(12px,2.2vw,30px);pointer-events:none;gap:10px}
 .cluster{display:flex;gap:8px;align-items:flex-end;pointer-events:auto;min-width:0}
-.ctrl{width:clamp(54px,6vw,72px);height:clamp(54px,6vw,72px);border-radius:17px;border:1px solid #ffffff65;background:#071018c9;color:#fff;font-weight:850;font-size:12px;display:grid;place-items:center;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 5px 16px #0006;backdrop-filter:blur(7px)}
+.ctrl{position:relative;z-index:12;pointer-events:auto;width:clamp(54px,6vw,72px);height:clamp(54px,6vw,72px);border-radius:17px;border:1px solid #ffffff65;background:#071018c9;color:#fff;font-weight:850;font-size:12px;display:grid;place-items:center;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 5px 16px #0006;backdrop-filter:blur(7px)}
 .ctrl.big{width:clamp(68px,7.2vw,88px);height:clamp(82px,9vw,104px);font-size:14px}
 .ctrl.active{background:#d95b28e8;border-color:#ffb18e;transform:scale(.97)}
 .steer{font-size:25px}
@@ -83,7 +83,7 @@ body{position:fixed;inset:0;width:100%;height:100%;overflow:hidden}#hud *{max-wi
 </style></head>
 <body><div id="hud">
 <div class="top">
-<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.4.1</div></div>
+<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.4.2</div></div>
 <div class="dashGroup">
   <div class="panel dash"><div class="speedLine"><span id="speed">000</span><span id="unit">KM/H</span><span class="gearLabel">GEAR</span><span id="gear">1</span></div><div id="rpmWrap"><div id="rpmBar"></div></div><div id="rpmText">950 RPM</div></div>
   <button id="camBtn">CAM: CHASE</button>
