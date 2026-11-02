@@ -3,116 +3,153 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>TOUGE DRIFT - Prototype 0.2</title>
+<title>FC Touge Racing - Prototype 0.2</title>
 <style>
-*{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#172019;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:system-ui,sans-serif}
-#game{display:block;width:100vw;height:100vh}
-#hud{position:fixed;top:max(12px,env(safe-area-inset-top));left:14px;color:#fff;text-shadow:0 2px 4px #000;pointer-events:none}
-#speed{font-size:30px;font-weight:800;line-height:1}
-#unit{font-size:11px;opacity:.8;margin-left:4px}
-#version{font-size:11px;opacity:.75;margin-top:6px;letter-spacing:1px}
-.controls{position:fixed;bottom:max(18px,env(safe-area-inset-bottom));display:flex;gap:12px;align-items:end}
-#steering{left:14px}
-#pedals{right:14px;flex-direction:column}
-.btn{width:min(19vw,82px);height:min(19vw,82px);border:2px solid rgba(255,255,255,.55);border-radius:50%;color:#fff;background:rgba(20,25,28,.55);font-size:25px;font-weight:800;display:grid;place-items:center;-webkit-tap-highlight-color:transparent;touch-action:none;box-shadow:0 3px 12px rgba(0,0,0,.3);padding:0}
-.btn.active{background:rgba(255,150,30,.8);transform:scale(.96)}
-#pedals .btn{width:min(17vw,74px);height:min(17vw,74px);font-size:15px;border-radius:18px}
-#brake{background:rgba(160,35,35,.55)}
-#gas{background:rgba(35,130,65,.6)}
-#hint{position:fixed;left:50%;top:max(12px,env(safe-area-inset-top));transform:translateX(-50%);color:#fff;font-size:11px;opacity:.72;text-shadow:0 1px 3px #000;pointer-events:none;white-space:nowrap}
+  * { box-sizing: border-box; }
+  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#111; display:flex; justify-content:center; align-items:center; touch-action:none; }
+  canvas { width:min(100vw, 106.67vh); height:min(93.75vh, 100vw * .9375); max-width:100vw; max-height:100vh; image-rendering:pixelated; border:4px solid #fff; box-shadow:0 0 20px rgba(255,255,255,.2); }
+  #touch { position:fixed; bottom:max(14px,env(safe-area-inset-bottom)); left:0; right:0; display:flex; justify-content:space-between; padding:0 18px; pointer-events:none; }
+  .pad { display:flex; gap:12px; pointer-events:auto; }
+  button { width:64px; height:58px; border:2px solid #fff; border-radius:8px; color:#fff; background:#222d; font:bold 22px monospace; touch-action:none; }
+  button:active, button.active { background:#a33; }
+  @media (hover:hover) and (pointer:fine) { #touch { display:none; } }
 </style>
 </head>
 <body>
-<canvas id="game"></canvas>
-<div id="hud"><div><span id="speed">0</span><span id="unit">km/h</span></div><div id="version">TOUGE DRIFT / PROTOTYPE 0.2</div></div>
-<div id="hint">タッチ操作 / キーボード操作対応</div>
-<div class="controls" id="steering">
-<button class="btn" id="left" aria-label="左">◀</button>
-<button class="btn" id="right" aria-label="右">▶</button>
-</div>
-<div class="controls" id="pedals">
-<button class="btn" id="gas">アクセル</button>
-<button class="btn" id="brake">ブレーキ</button>
+<canvas id="gameCanvas" width="256" height="240"></canvas>
+<div id="touch">
+  <div class="pad"><button id="left">◀</button><button id="right">▶</button></div>
+  <div class="pad"><button id="accelerate">HI</button></div>
 </div>
 <script>
-(()=>{
-const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),speedEl=document.getElementById('speed');
-let W=0,H=0,dpr=1,roadRx=300,roadRy=190;
-function resize(){
- dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
- canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
- canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);
- roadRx=Math.max(170,Math.min(W,H)*.36);roadRy=Math.max(125,Math.min(W,H)*.245);
-}
-addEventListener('resize',resize);resize();
-const input={gas:false,brake:false,left:false,right:false};
-const car={x:0,y:-roadRy,angle:0,speed:0,maxSpeed:7.5,accel:.105,brakePower:.16,friction:.025,steer:.035};
-function bindButton(id,key){
- const el=document.getElementById(id);
- const on=e=>{e.preventDefault();input[key]=true;el.classList.add('active');};
- const off=e=>{e.preventDefault();input[key]=false;el.classList.remove('active');};
- el.addEventListener('pointerdown',on);
- ['pointerup','pointercancel','pointerleave','lostpointercapture'].forEach(t=>el.addEventListener(t,off));
-}
-bindButton('gas','gas');bindButton('brake','brake');bindButton('left','left');bindButton('right','right');
-const keys={};
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();},{passive:false});
-addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
-function held(n){
- if(n==='gas')return input.gas||keys.arrowup||keys.w;
- if(n==='brake')return input.brake||keys.arrowdown||keys.s;
- if(n==='left')return input.left||keys.arrowleft||keys.a;
- return input.right||keys.arrowright||keys.d;
-}
-function update(){
- if(held('gas'))car.speed=Math.min(car.maxSpeed,car.speed+car.accel);
- if(held('brake')){if(car.speed>0)car.speed=Math.max(0,car.speed-car.brakePower);else car.speed=Math.max(-2.2,car.speed-car.accel*.55);}
- if(!held('gas')&&!held('brake')){if(car.speed>0)car.speed=Math.max(0,car.speed-car.friction);if(car.speed<0)car.speed=Math.min(0,car.speed+car.friction);}
- if(Math.abs(car.speed)>.12){
-  const direction=car.speed>=0?1:-1;
-  const steerInput=(held('right')?1:0)-(held('left')?1:0);
-  car.angle+=steerInput*car.steer*direction*(.25+Math.abs(car.speed)/car.maxSpeed);
- }
- car.x+=Math.cos(car.angle)*car.speed;
- car.y+=Math.sin(car.angle)*car.speed;
- speedEl.textContent=Math.round(Math.abs(car.speed)*28);
-}
-function drawRoad(){
- const cx=W*.5-car.x,cy=H*.5-car.y;
- ctx.fillStyle='#29452e';ctx.fillRect(0,0,W,H);
- // 背景の木々もコースと一緒に流れる
- for(let i=0;i<110;i++){
-  const a=i*2.399,rr=Math.max(roadRx,roadRy)*1.45+(i%6)*15;
-  const x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr*.78;
-  ctx.fillStyle=i%3===0?'#183522':'#203d28';
-  ctx.beginPath();ctx.arc(x,y,8+(i%4)*2,0,Math.PI*2);ctx.fill();
- }
- ctx.lineCap='round';
- ctx.strokeStyle='#777';ctx.lineWidth= Math.max(76,Math.min(112,roadRy*.58));
- ctx.beginPath();ctx.ellipse(cx,cy,roadRx,roadRy,0,0,Math.PI*2);ctx.stroke();
- ctx.strokeStyle='#333';ctx.lineWidth=Math.max(66,Math.min(100,roadRy*.52));
- ctx.beginPath();ctx.ellipse(cx,cy,roadRx,roadRy,0,0,Math.PI*2);ctx.stroke();
- ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=2;ctx.setLineDash([16,18]);
- ctx.beginPath();ctx.ellipse(cx,cy,roadRx,roadRy,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
- ctx.strokeStyle='#d9d9d0';ctx.lineWidth=5;
- ctx.beginPath();ctx.ellipse(cx,cy,roadRx+43,roadRy+28,0,0,Math.PI*2);ctx.stroke();
- ctx.strokeStyle='#aeb4b0';ctx.lineWidth=2;
- ctx.beginPath();ctx.ellipse(cx,cy,roadRx+43,roadRy+28,0,0,Math.PI*2);ctx.stroke();
- ctx.fillStyle='#345b39';ctx.beginPath();ctx.ellipse(cx,cy,roadRx*.56,roadRy*.48,0,0,Math.PI*2);ctx.fill();
-}
-function drawCar(){
- ctx.save();ctx.translate(W*.5,H*.5);ctx.rotate(car.angle);
- ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(-17,-8,42,24);
- ctx.fillStyle='#111';ctx.fillRect(-13,-13,9,5);ctx.fillRect(8,-13,9,5);ctx.fillRect(-13,9,9,5);ctx.fillRect(8,9,9,5);
- ctx.fillStyle='#d83232';ctx.fillRect(-20,-10,40,20);
- ctx.fillStyle='#9ec8d4';ctx.fillRect(-7,-8,15,16);
- ctx.fillStyle='#fff2c4';ctx.fillRect(15,-7,5,5);ctx.fillRect(15,2,5,5);
- ctx.fillStyle='#7c1717';ctx.fillRect(-20,-8,4,16);
- ctx.restore();
-}
-function frame(){update();drawRoad();drawCar();requestAnimationFrame(frame);}
-frame();
+(() => {
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+
+  let scrollY = 0, speed = 2, score = 0, gameOver = false, frame = 0;
+  const courseWidth = 100;
+  const player = { x:120, y:180, width:12, height:18, steerSpeed:3 };
+  const enemies = [];
+  const keys = {};
+  const touch = { left:false, right:false, accelerate:false };
+
+  addEventListener("keydown", e => {
+    keys[e.key.toLowerCase()] = true;
+    if (["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key)) e.preventDefault();
+  }, {passive:false});
+  addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+  function bindButton(id, key) {
+    const el = document.getElementById(id);
+    const down = e => { e.preventDefault(); touch[key] = true; el.classList.add("active"); };
+    const up = e => { e.preventDefault(); touch[key] = false; el.classList.remove("active"); };
+    el.addEventListener("pointerdown", down);
+    ["pointerup","pointercancel","pointerleave","lostpointercapture"].forEach(type => el.addEventListener(type, up));
+  }
+  bindButton("left","left"); bindButton("right","right"); bindButton("accelerate","accelerate");
+
+  const pressed = key => !!keys[key];
+  const leftHeld = () => pressed("arrowleft") || pressed("a") || touch.left;
+  const rightHeld = () => pressed("arrowright") || pressed("d") || touch.right;
+  const highGear = () => pressed("arrowup") || pressed("w") || touch.accelerate;
+
+  // 複数の波を重ねて、ゆるい区間と急カーブを作る
+  function getCourseCenterX(y) {
+    const p = y - scrollY;
+    return 128
+      + Math.sin(p * 0.010) * 27
+      + Math.sin(p * 0.021 + 1.4) * 17
+      + Math.sin(p * 0.0042 + 0.7) * 19;
+  }
+
+  function spawnEnemy() {
+    const y = -22;
+    const center = getCourseCenterX(y);
+    const laneOffset = Math.random() < 0.5 ? -25 : 25;
+    const x = center + laneOffset - 6;
+    enemies.push({ x, y, width:12, height:18, speed:0.8, color:Math.random()<0.5?"#2876ee":"#f0d33b" });
+  }
+
+  function resetGame() {
+    scrollY=0; speed=2; score=0; gameOver=false; frame=0;
+    player.x=120; enemies.length=0;
+  }
+
+  function update() {
+    if (gameOver) { if (pressed(" ") || pressed("enter")) resetGame(); return; }
+    speed = highGear() ? 4 : 2;
+    scrollY += speed;
+    frame++;
+    score += speed === 4 ? 2 : 1;
+
+    if (leftHeld()) player.x -= player.steerSpeed;
+    if (rightHeld()) player.x += player.steerSpeed;
+
+    // 敵車は画面上から出現し、自車より遅い相対速度で下へ流れる
+    if (frame % 78 === 0 && enemies.length < 4) spawnEnemy();
+    for (let i=enemies.length-1; i>=0; i--) {
+      const enemy=enemies[i];
+      enemy.y += speed - enemy.speed;
+      if (enemy.y > canvas.height + 24) enemies.splice(i,1);
+    }
+
+    const center=getCourseCenterX(player.y + player.height/2);
+    const left=center-courseWidth/2, right=center+courseWidth/2;
+    if (player.x < left || player.x+player.width > right) gameOver=true;
+
+    for (const enemy of enemies) {
+      const hit = player.x < enemy.x+enemy.width-2 &&
+        player.x+player.width > enemy.x+2 &&
+        player.y < enemy.y+enemy.height-2 &&
+        player.y+player.height > enemy.y+2;
+      if (hit) gameOver=true;
+    }
+  }
+
+  function drawCar(x,y,color,isPlayer=false) {
+    ctx.fillStyle=color; ctx.fillRect(x,y,12,18);
+    ctx.fillStyle="#111";
+    ctx.fillRect(x-2,y+2,2,4); ctx.fillRect(x+12,y+2,2,4);
+    ctx.fillRect(x-2,y+12,2,4); ctx.fillRect(x+12,y+12,2,4);
+    ctx.fillStyle=isPlayer?"#9be7ff":"#c9d8e8";
+    ctx.fillRect(x+3,y+4,6,5);
+    ctx.fillStyle="#fff2c4";
+    if(isPlayer){ctx.fillRect(x+2,y,3,2);ctx.fillRect(x+7,y,3,2);}
+    else {ctx.fillRect(x+2,y+16,3,2);ctx.fillRect(x+7,y+16,3,2);}
+  }
+
+  function draw() {
+    ctx.fillStyle="#008800"; ctx.fillRect(0,0,256,240);
+    for(let y=0;y<240;y++) {
+      const center=getCourseCenterX(y), left=center-courseWidth/2;
+      ctx.fillStyle="#444"; ctx.fillRect(left,y,courseWidth,1);
+      const red=Math.floor((y-scrollY)/16)%2===0;
+      ctx.fillStyle=red?"#ff0000":"#fff";
+      ctx.fillRect(left-2,y,3,1); ctx.fillRect(left+courseWidth-1,y,3,1);
+      // 路肩の点線で速度感を出す
+      if(Math.floor((y-scrollY)/12)%2===0) {
+        ctx.fillStyle="#b8b8b8";
+        ctx.fillRect(center-1,y,2,1);
+      }
+    }
+
+    for(const enemy of enemies) drawCar(Math.round(enemy.x),Math.round(enemy.y),enemy.color,false);
+    drawCar(Math.round(player.x),player.y,"#ff2222",true);
+
+    ctx.fillStyle="#fff"; ctx.font="12px monospace";
+    ctx.fillText(`SCORE:${String(score).padStart(6,"0")}`,10,15);
+    ctx.fillText(speed===4?"HI":"LOW",210,15);
+    if(gameOver) {
+      ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(0,0,256,240);
+      ctx.fillStyle="#ff3333";ctx.font="bold 16px monospace";ctx.fillText("CRASH!!",91,108);
+      ctx.fillStyle="#fff";ctx.font="9px monospace";ctx.fillText("PRESS SPACE / ENTER",65,128);
+      ctx.fillText("TO RESTART",91,140);
+    }
+  }
+
+  function loop(){update();draw();requestAnimationFrame(loop);}
+  loop();
 })();
 </script>
 </body>
