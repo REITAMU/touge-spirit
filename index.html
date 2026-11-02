@@ -89,7 +89,7 @@ canvas{z-index:0!important}
 </style></head>
 <body><div id="hud">
 <div class="top">
-<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.5.1</div></div>
+<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.5.2</div></div>
 <div class="dashGroup">
   <div class="panel dash"><div class="speedLine"><span id="speed">000</span><span id="unit">KM/H</span><span class="gearLabel">GEAR</span><span id="gear">1</span></div><div id="rpmWrap"><div id="rpmBar"></div></div><div id="rpmText">950 RPM</div></div>
   <button id="camBtn">CAM: CHASE</button>
@@ -198,8 +198,10 @@ function updatePhysics(dt){
  // Stable bicycle-model vehicle dynamics. Body forward is +Z; body right is +X.
  const clamp=THREE.MathUtils.clamp;
  const c=Math.cos(state.yaw),sn=Math.sin(state.yaw);
+ // Body coordinates: forward=(sin(yaw), cos(yaw)); left=(-cos(yaw), sin(yaw)).
+ // Lateral velocity is left-positive throughout the tire and yaw calculations.
  let vf=state.vx*sn+state.vz*c;
- let vl=state.vx*c-state.vz*sn;
+ let vl=-state.vx*c+state.vz*sn;
 
  // Gearbox: one shift per press.
  if(shiftCooldown>0) shiftCooldown-=dt;
@@ -219,7 +221,8 @@ function updatePhysics(dt){
  const brake=input.brake?1:0;
  const steerTarget=(input.left?1:0)-(input.right?1:0);
  state.steer+=(steerTarget-state.steer)*Math.min(1,dt*5.5);
- const steerAngle=-state.steer*0.48*clamp(1-Math.abs(vf)/95,.48,1);
+ // Positive steering input means left; positive tire force is also leftward.
+ const steerAngle=state.steer*0.48*clamp(1-Math.abs(vf)/95,.48,1);
 
  const roadInfo=nearestRoadInfo(state.x,state.z);
  const onRoad=roadInfo.distance<5.0;
@@ -247,8 +250,9 @@ function updatePhysics(dt){
 
  // Slip angles are measured at each axle, including yaw velocity.
  const vxSafe=Math.max(2.0,Math.abs(vf));
- const frontVy=vl+state.yawRate*lf;
- const rearVy=vl-state.yawRate*lr;
+ // Positive yaw turns right: the front point moves right and the rear moves left.
+ const frontVy=vl-state.yawRate*lf;
+ const rearVy=vl+state.yawRate*lr;
  const direction=Math.sign(vf||1);
  const alphaFront=Math.atan2(frontVy,vxSafe)*direction-steerAngle;
  const alphaRear=Math.atan2(rearVy,vxSafe)*direction;
@@ -265,7 +269,8 @@ function updatePhysics(dt){
 
  // Convert tire forces to body acceleration and yaw moment.
  const lateralForce=fyFront+fyRear;
- const yawMoment=lf*fyFront-lr*fyRear;
+ // Leftward force at the front yaws left; leftward force at the rear yaws right.
+ const yawMoment=-lf*fyFront+lr*fyRear;
  const yawAccel=yawMoment/iz-state.yawRate*(handActive?1.25:2.1);
  state.yawRate+=yawAccel*dt;
  state.yawRate=clamp(state.yawRate,-2.8,2.8);
@@ -278,8 +283,9 @@ function updatePhysics(dt){
  if(!throttle&&!brake&&Math.abs(vf)<.7)vf*=Math.max(0,1-dt*2.5);
  state.yaw+=state.yawRate*dt;
  const cc=Math.cos(state.yaw),ss=Math.sin(state.yaw);
- state.vx=vf*ss+vl*cc;
- state.vz=vf*cc-vl*ss;
+ // Convert forward + left-positive lateral velocity to world coordinates.
+ state.vx=vf*ss-vl*cc;
+ state.vz=vf*cc+vl*ss;
  state.x+=state.vx*dt;
  state.z+=state.vz*dt;
  state.y+=(roadInfo.y-.12-state.y)*Math.min(1,dt*8);
