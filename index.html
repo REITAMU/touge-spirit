@@ -89,7 +89,7 @@ canvas{z-index:0!important}
 </style></head>
 <body><div id="hud">
 <div class="top">
-<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.4.6</div></div>
+<div class="brandBlock"><div class="brand">TOUGE SPIRIT</div><div class="sub">MOUNTAIN DRIVE / PROTOTYPE 0.5.0</div></div>
 <div class="dashGroup">
   <div class="panel dash"><div class="speedLine"><span id="speed">000</span><span id="unit">KM/H</span><span class="gearLabel">GEAR</span><span id="gear">1</span></div><div id="rpmWrap"><div id="rpmBar"></div></div><div id="rpmText">950 RPM</div></div>
   <button id="camBtn">CAM: CHASE</button>
@@ -235,24 +235,42 @@ function updatePhysics(dt){
  const surfaceGrip=onRoad?1:.34;
  const speedFactor=THREE.MathUtils.clamp(Math.abs(vf)/8,0,1);
  const desiredYaw=state.steer*(.58+Math.abs(vf)*.024)*speedFactor*(vf>=0?1:-1);
- // Rear axle loses grip under handbrake; lateral velocity is allowed to build.
- const rearGripScale=input.hand?.055:1;
- const baseGrip=8.8*load*surfaceGrip*rearGripScale;
- const lateralAccel=THREE.MathUtils.clamp(-vl*baseGrip,-13,13);
+ // Separate front/rear tire model: front axle steers and keeps grip;
+ // rear axle releases grip under handbrake or excess drive torque.
  const handActive=input.hand && Math.abs(vf)>3;
- const handSlide=handActive?state.steer*Math.min(Math.abs(vf)*2.25,22):0;
- // A brief yaw moment makes the rear rotate around the front axle instead of the
- // whole car simply steering sideways. Counter-steer then opposes this rotation.
- const handYaw=handActive?state.steer*Math.min(Math.abs(vf)*.19,2.8):0;
- const powerOversteer=(!input.hand && throttle && Math.abs(vf)>8)?state.steer*Math.min(Math.abs(vf)*.035,.65):0;
- const yawTarget=desiredYaw+handYaw+powerOversteer;
- const yawResponse=input.hand?2.3:4.5;
- const yawAccel=(yawTarget-state.yawRate)*yawResponse-state.yawRate*(input.hand?.18:.85);
+ const frontGrip=onRoad?9.6*load:3.2;
+ const rearBaseGrip=onRoad?8.4*load:2.8;
+ const rearGrip=rearBaseGrip*(handActive?.10:1);
+ const wheelBase=2.64, frontAxle=1.32, rearAxle=1.32;
+ const steerAngle=state.steer*.48;
+ // Lateral velocity at each axle includes the yaw contribution.
+ const frontLateralVelocity=vl+state.yawRate*frontAxle;
+ const rearLateralVelocity=vl-state.yawRate*rearAxle;
+ // Front tire force acts in the steered wheel direction; rear tires resist slip.
+ const frontSlip=frontLateralVelocity/Math.max(3,Math.abs(vf));
+ const rearSlip=rearLateralVelocity/Math.max(3,Math.abs(vf));
+ let frontLateralForce=THREE.MathUtils.clamp(
+   -frontLateralVelocity*frontGrip + vf*state.steer*.95,
+   -frontGrip*1.35,frontGrip*1.35
+ );
+ let rearLateralForce=THREE.MathUtils.clamp(
+   -rearLateralVelocity*rearGrip,
+   -rearGrip*1.35,rearGrip*1.35
+ );
+ // Power oversteer is rear-axle-only and only appears under throttle.
+ if(!handActive && throttle && Math.abs(vf)>9){
+   rearLateralForce*=.82;
+ }
+ const lateralAccel=frontLateralForce+rearLateralForce;
+ // Differential axle forces create yaw; counter-steer acts through the front axle.
+ const tireYawMoment=(frontLateralForce*frontAxle-rearLateralForce*rearAxle)/3.4;
+ const handYaw=handActive?state.steer*Math.min(Math.abs(vf)*.16,2.1):0;
+ const yawAccel=tireYawMoment*.22+handYaw-state.yawRate*(handActive?.42:1.15);
  state.yawRate+=yawAccel*dt;
  state.yaw+=state.yawRate*dt;
 
  vf+=longitudinal*dt;
- vl+=(lateralAccel+handSlide)*dt;
+ vl+=lateralAccel*dt;
  const cc=Math.cos(state.yaw),ss=Math.sin(state.yaw);
  state.vx=vf*ss+vl*cc;
  state.vz=vf*cc-vl*ss;
@@ -265,7 +283,7 @@ function updatePhysics(dt){
 
  document.getElementById('surface').textContent=onRoad?'ASPHALT':'GRAVEL · LOW GRIP';
  document.getElementById('surface').style.color=onRoad?'#b9d9c3':'#ffb27c';
- for(const w of wheels){w.mesh.rotation.x+=vf*dt*1.9;w.mesh.rotation.y=(w.z<0)?state.steer*.45:0;}
+ for(const w of wheels){w.mesh.rotation.x+=vf*dt*1.9;w.mesh.rotation.y=(w.z<0)?state.steer*.48:0;}
 
  const kmh=Math.round(Math.abs(vf)*3.6);
  speedEl.textContent=String(kmh).padStart(3,'0');
@@ -274,7 +292,7 @@ function updatePhysics(dt){
  rpmBar.style.width=(rpm/7200*100)+'%';
  rpmBar.style.background=rpm>6200?'#ef795e':rpm>5000?'#e6c46a':'#73d6a0';
  const slip=Math.atan2(Math.abs(vl),Math.max(2,Math.abs(vf)));
- const driftLabel=Math.abs(slip)>0.20?'DRIFT':'GRIP';
+ const driftLabel=Math.abs(rearSlip)>Math.abs(frontSlip)+.08?'OVERSTEER':(Math.abs(frontSlip)>Math.abs(rearSlip)+.08?'UNDERSTEER':'GRIP');
  document.getElementById('telemetry').innerHTML=`車両：TS-86R<br>駆動：FR / 6MT<br>回転数：${Math.round(rpm)} RPM<br>横すべり：${Math.round(Math.abs(slip)*180/Math.PI)}°<br>${driftLabel}${input.hand?' · HANDBRAKE':''}`;
 }
 function updateCamera(dt){if(camMode===0){const back=new THREE.Vector3(Math.sin(state.yaw)*9,4.1,Math.cos(state.yaw)*9);const target=new THREE.Vector3(state.x-back.x,state.y+back.y,state.z-back.z);camera.position.lerp(target,1-Math.exp(-4*dt));camera.lookAt(state.x,state.y+1,state.z)}else{const p=cockpit.getWorldPosition(new THREE.Vector3());const dir=new THREE.Vector3(Math.sin(state.yaw),0,Math.cos(state.yaw));camera.position.copy(p);camera.lookAt(p.clone().add(dir.multiplyScalar(15)).add(new THREE.Vector3(0,-.3,0)))} }
